@@ -14,15 +14,20 @@ AGoKart::AGoKart()
 	bReplicates = true;
 
 	BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Box"));
+    if (BoxComponent==nullptr) return;
 	SetRootComponent(BoxComponent);
 	MeshOffsetRootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("MeshOffsetComponent"));
+	if (MeshOffsetRootComponent==nullptr) return;
 	MeshOffsetRootComponent->SetupAttachment(GetRootComponent());
 	SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMeshComponent"));
+	if (SkeletalMeshComponent==nullptr) return;
 	SkeletalMeshComponent->SetupAttachment(MeshOffsetRootComponent);
 	
 	MovingComponent = CreateDefaultSubobject<UGoKartMovingComponent>(TEXT("MovingComponent"));
 	MovementReplicator = CreateDefaultSubobject<UGoKartMovementReplicator>(TEXT("MovementReplicator"));
+	if (MovementReplicator==nullptr) return;
 	MovementReplicator->SetMeshOffsetRoot(MeshOffsetRootComponent);
+	MovementReplicator->SetIsReplicated(true);
 }
 
 // Called when the game starts or when spawned

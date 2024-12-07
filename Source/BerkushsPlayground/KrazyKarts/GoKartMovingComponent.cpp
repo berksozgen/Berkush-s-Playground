@@ -12,6 +12,10 @@ UGoKartMovingComponent::UGoKartMovingComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
+	UWorld* MyOwnerWorld = (GetOwner() ? GetOwner()->GetWorld() : nullptr);
+
+	if (MyOwnerWorld!= nullptr) RegisterComponentWithWorld(MyOwnerWorld);
+
 	// ...
 }
 

@@ -32,7 +32,7 @@ void ACasinoGamemode::PokerInitilizaer()
 			CurrentCard = Cast<ACard>(World->SpawnActorDeferred<AActor>(CardClass, PokerTable));
 			CurrentCard->CardSymbol = i;
 			CurrentCard->CardPower = j;
-			CurrentCard->SetActorLabel(FString::Printf(TEXT("Poker Card = Symbol = %d, Power = %d"), i, j));
+			//CurrentCard->SetActorLabel(FString::Printf(TEXT("Poker Card = Symbol = %d, Power = %d"), i, j));
 			CurrentCard->MyInitialize();
 			PokerCards.Add(CurrentCard);
 		}

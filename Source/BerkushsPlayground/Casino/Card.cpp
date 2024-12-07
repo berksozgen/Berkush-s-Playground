@@ -16,6 +16,7 @@ void ACard::MyInitialize()
 {
 	//CardFrontImage = CardFrontImages[(CardSymbol*13)+CardSymbol];
 	CardDemoText->SetText(FText::FromString(FString::Printf(TEXT("%s %d"),*CardSymbols[CardSymbol],CardPower)));
+	//SetActorLabel(FString::Printf(TEXT("Poker Card = Symbol = %d, Power = %d"), CardSymbol, CardPower));
 }
 
 
