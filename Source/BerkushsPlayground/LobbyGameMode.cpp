@@ -11,11 +11,12 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 	++NumberOfPlayers;
-
+/*
 	if (NumberOfPlayers >= 2)
 	{
 		GetWorldTimerManager().SetTimer(GameStartTimer, this, &ALobbyGameMode::StartGame,10.f, false);
 	}
+*/
 }
 
 void ALobbyGameMode::Logout(AController* Exiting)
@@ -36,5 +37,5 @@ void ALobbyGameMode::StartGame()
 	if (!ensure(World!=nullptr)) return;
 
 	bUseSeamlessTravel = true;
-	World->ServerTravel("/Game/Maps/ThirdPersonMap?listen");
+	World->ServerTravel("/Game/KrayzKarts/VehicleExampleMap?listen");
 }

@@ -19,12 +19,14 @@ public:
 	void PostLogin(APlayerController* NewPlayer) override;
 
 	void Logout(AController* Exiting) override;
+
+	UFUNCTION(BlueprintCallable)
+	void StartGame();
 	
 private:
 
-	void StartGame();
-
 	FTimerHandle GameStartTimer;
-	
+
 	uint32 NumberOfPlayers = 0;
+	
 };

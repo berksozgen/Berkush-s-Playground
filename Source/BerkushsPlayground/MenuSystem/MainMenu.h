@@ -47,6 +47,9 @@ private:
 	class UButton* JoinButton;
 
 	UPROPERTY(meta = (BindWidget))
+	class UButton* SettingsButton;
+
+	UPROPERTY(meta = (BindWidget))
 	class UButton* ExitButton;
 
 	UPROPERTY(meta = (BindWidget))
@@ -68,6 +71,9 @@ private:
 	class UWidget* HostMenu;
 
 	UPROPERTY(meta = (BindWidget))
+	class UWidget* SettingsMenu;
+
+	UPROPERTY(meta = (BindWidget))
 	class UEditableTextBox* ServerHostName;
 
 	UPROPERTY(meta = (BindWidget))
@@ -75,6 +81,9 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	class UButton* CancelHostMenuButton;
+
+	UPROPERTY(meta = (BindWidget))
+	class UButton* CancelSettingsMenuButton;
 
 	UPROPERTY(meta = (BindWidget))
 	class UPanelWidget* ServerList;
@@ -90,6 +99,9 @@ private:
 
 	UFUNCTION()
 	void OpenHostMenu();
+
+	UFUNCTION()
+	void OpenSettingsMenu();
 
 	UFUNCTION()
 	void OpenMainMenu();
