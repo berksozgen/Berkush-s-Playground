@@ -4,6 +4,7 @@
 #include "CasinoGamemode.h"
 #include "Card.h"
 #include "CasinoPlayer.h"
+#include "HairStrandsInterface.h"
 
 
 ACasinoGamemode::ACasinoGamemode()
@@ -104,24 +105,87 @@ AActor* ACasinoGamemode::Poker_WhoWinner(TArray<class ACasinoPlayer*> Players, T
 
 FWinnerCardInfo ACasinoGamemode::Poker_RoyalFlush(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
 {
-	return FWinnerCardInfo();
+	FWinnerCardInfo CardInfo;
+	CardInfo.WinFunctionName = TEXT("Royal Flush");
+	CardInfo.bIsWin = false;
+	return CardInfo;
 }
 FWinnerCardInfo ACasinoGamemode::Poker_StraightFlush(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
 {
-	return FWinnerCardInfo();
+	FWinnerCardInfo CardInfo;
+	CardInfo.WinFunctionName = TEXT("Straight Flush");
+	CardInfo.bIsWin = false;
+	return CardInfo;
 }
 FWinnerCardInfo ACasinoGamemode::Poker_Quad(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
 {
-	return FWinnerCardInfo();
+	FWinnerCardInfo CardInfo;
+	CardInfo.WinFunctionName = TEXT("Quad");
+	CardInfo.bIsWin = false;
+	return CardInfo;
 }
 FWinnerCardInfo ACasinoGamemode::Poker_FullHouse(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
 {
-	return FWinnerCardInfo();
+	FWinnerCardInfo CardInfo;
+	CardInfo.WinFunctionName = TEXT("Full House");
+	CardInfo.bIsWin = false;
+	
+	//Oyuncunun elindeki kartlarin ayni olup olmadigini kontrol et
+	if(PlayerCards[0]->CardPower == PlayerCards[1]->CardPower) return CardInfo; //Oyuncunun ellerindeki iki kartta aynu full house olamaz
+	
+	bool bHasFirstCardThreeOfAKind = Poker_ThreeOfAKind_Individual(PlayerCards[0],DeskCards).bIsWin;
+	bool bHasFirstCardPair = Poker_Pair_Individual(PlayerCards[0],DeskCards).bIsWin;
+	
+	bool bHasSecondCardThreeOfAKind = Poker_ThreeOfAKind_Individual(PlayerCards[1],DeskCards).bIsWin;
+	bool bHasSecondCardPair = Poker_Pair_Individual(PlayerCards[0],DeskCards).bIsWin;
+
+	//Kart1 Three of a kind ve Kart2'nin Pair olma konumunu yokla
+	bool bIsFirstThreeOfAKindAndSecondHasPair = (bHasFirstCardThreeOfAKind && bHasSecondCardPair);
+	//Kart2 Three of a kind ve Kart1'nin Pair olma konumunu yokla
+	bool bIsSecondThreeOfAKindAndFirstHasPair = (bHasSecondCardThreeOfAKind && bHasFirstCardPair);
+
+	if(bIsFirstThreeOfAKindAndSecondHasPair && !bIsSecondThreeOfAKindAndFirstHasPair)
+	{
+		//Kart1 Three of a kind ve Kart2'nin Pair olma durumu
+		FWinnerCardInfo IGuessThreeOfAKindIsMoreValuable = Poker_ThreeOfAKind_Individual(PlayerCards[0],DeskCards);
+		CardInfo.CardPower = IGuessThreeOfAKindIsMoreValuable.CardPower;
+		CardInfo.CardSymbol = IGuessThreeOfAKindIsMoreValuable.CardSymbol;
+		CardInfo.bIsWin = true;
+		return CardInfo;
+	}
+	if(!bIsFirstThreeOfAKindAndSecondHasPair && bIsSecondThreeOfAKindAndFirstHasPair)
+	{
+		//Kart2 Three of a kind ve Kart1'nin Pair olma durumu
+		FWinnerCardInfo IGuessThreeOfAKindIsMoreValuable = Poker_ThreeOfAKind_Individual(PlayerCards[1],DeskCards);
+		CardInfo.CardPower = IGuessThreeOfAKindIsMoreValuable.CardPower;
+		CardInfo.CardSymbol = IGuessThreeOfAKindIsMoreValuable.CardSymbol;
+		CardInfo.bIsWin = true;
+		return CardInfo;
+	}
+	if(bIsFirstThreeOfAKindAndSecondHasPair && bIsSecondThreeOfAKindAndFirstHasPair)
+	{
+		//Iki kartin da 2 kosulu saglama durumu
+		FWinnerCardInfo FirstCardInfo = Poker_ThreeOfAKind_Individual(PlayerCards[0],DeskCards);
+		FWinnerCardInfo SecondCardInfo = Poker_ThreeOfAKind_Individual(PlayerCards[1],DeskCards);
+		//Iki kartin da degeri ayni olmayacaina gore
+		CardInfo.CardPower = FirstCardInfo.CardPower;
+		CardInfo.CardSymbol = FirstCardInfo.CardSymbol;
+		if (SecondCardInfo.CardPower > CardInfo.CardPower)
+		{
+			CardInfo.CardPower = SecondCardInfo.CardPower;
+			CardInfo.CardSymbol = SecondCardInfo.CardSymbol;
+		}
+		CardInfo.bIsWin = true;
+		return CardInfo;
+	}
+	//Hic bir kosul saglanmiyor, f for player :/
+	return CardInfo;
 }
 FWinnerCardInfo ACasinoGamemode::Poker_Flush(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
 {
 	FWinnerCardInfo CardInfo;
 	CardInfo.WinFunctionName = TEXT("Flush");
+	CardInfo.bIsWin = false;
 	if (PlayerCards[0]->CardSymbol == PlayerCards[1]->CardSymbol)
 	{
 		uint8 HowManyCardsWeNeed = 3;
@@ -204,10 +268,140 @@ FWinnerCardInfo ACasinoGamemode::Poker_Flush(TArray <class ACard*> PlayerCards, 
 		}
 	}
 }
+FWinnerCardInfo ACasinoGamemode::Poker_Straight_Individual_Checker(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
+{
+	FWinnerCardInfo CardInfo;
+	CardInfo.WinFunctionName = TEXT("Poker_Straight_Individual_Checker, It Musn't Going Out To Scope");
+	CardInfo.bIsWin = false;
+	//Kart1 Den Basla
+	FWinnerCardInfo PlayerCard1Info = Poker_Straight_Individual(PlayerCards[0], DeskCards);
+	//Kart2 yi Hesapla
+	FWinnerCardInfo PlayerCard2Info = Poker_Straight_Individual(PlayerCards[1], DeskCards);
+	//Kazanan karti geri dondur, hicbiri kazanmamisa CardInfo false yolla
+	if(PlayerCard1Info.bIsWin && !PlayerCard2Info.bIsWin) return PlayerCard1Info;
+	if(!PlayerCard1Info.bIsWin && PlayerCard2Info.bIsWin) return PlayerCard2Info;
+	if(PlayerCard1Info.bIsWin && PlayerCard2Info.bIsWin) //Iki kartta buyuk, buyuk karti bul
+	{
+		if(PlayerCard1Info.CardPower > PlayerCard2Info.CardPower) return PlayerCard1Info;
+		if(PlayerCard1Info.CardPower < PlayerCard2Info.CardPower) return PlayerCard2Info;
+		if(PlayerCard1Info.CardSymbol > PlayerCard2Info.CardSymbol) return PlayerCard1Info;
+		else return PlayerCard2Info;
+	}
+	return CardInfo; //Playerin hic bir individual karti kazanmadi bos yolla
+}
+FWinnerCardInfo ACasinoGamemode::Poker_Straight_Individual(class ACard* PlayerCard, TArray<class ACard*> DeskCards)
+{
+	FWinnerCardInfo CardInfo;
+	CardInfo.WinFunctionName = TEXT("Poker_Straight_Individual, It Musn't Going Out To Scope");
+	CardInfo.bIsWin = false;
+	//Oyuncunun elindeki tak kartin Straight olusturabilirmesi icin
+	//4 Kucuk -> Return player card
+	//3 Kucuk 1 Buyuk -> Return big card
+	//2 Kucuk 2 Buyuk -> Return big card
+	//1 Kucuk 3 Buyuk -> Return big card
+	//4 Buyuk -> Return big card
+	bool bFourValueSmaller = false;
+	bool bThreeValueSmaller = false;
+	bool bTwoValueSmaller = false;
+	bool bOneValueSmaller = false;
+	bool bOneValueGreater = false;
+	bool bTwoValueGreater = false;
+	bool bThreeValueGreater = false;
+	bool bFourValueGreater = false;
+
+	uint8 PlayerCardPower = PlayerCard->CardPower;
+	for(int i = 0; i < 5; i++)
+	{
+		if (PlayerCardPower - 4 == DeskCards[i]->CardPower) bFourValueSmaller = true;
+		if (PlayerCardPower - 3 == DeskCards[i]->CardPower) bThreeValueSmaller = true;
+		if (PlayerCardPower - 2 == DeskCards[i]->CardPower) bTwoValueSmaller = true;
+		if (PlayerCardPower - 1 == DeskCards[i]->CardPower) bOneValueSmaller = true;
+		if (PlayerCardPower + 1 == DeskCards[i]->CardPower) bOneValueGreater = true;
+		if (PlayerCardPower + 2 == DeskCards[i]->CardPower) bTwoValueGreater = true;
+		if (PlayerCardPower + 3 == DeskCards[i]->CardPower) bThreeValueGreater = true;
+		if (PlayerCardPower + 4 == DeskCards[i]->CardPower) bFourValueGreater = true;
+	}
+
+	//4 Kucuk Var Mi Control Et
+	if (bFourValueSmaller && bThreeValueSmaller && bTwoValueSmaller && bOneValueSmaller)
+	{
+		CardInfo.CardPower = PlayerCardPower;
+		CardInfo.CardSymbol = PlayerCard->CardSymbol;
+		CardInfo.bIsWin = true;
+		return CardInfo;
+	}
+	//3 Kucuk 1 Buyuk Var Mi Control Et
+	if (bThreeValueSmaller && bTwoValueSmaller && bOneValueSmaller && bOneValueGreater)
+	{
+		//1 Buyuk Kartin Degerlerini Al
+		for (int i = 0; i < 5; i++)
+		{
+			if (PlayerCardPower + 1 == DeskCards[i]->CardPower)
+			{
+				CardInfo.CardPower = PlayerCardPower + 1;
+				CardInfo.CardSymbol = DeskCards[i]->CardSymbol;
+				break;
+			}
+		}
+		CardInfo.bIsWin = true;
+		return CardInfo;
+	}
+	//2 Kucuk 2 Buyuk Var Mi Control Et
+	if (bTwoValueSmaller && bOneValueSmaller && bOneValueGreater && bTwoValueGreater)
+	{
+		//2 Buyuk Kartin Degerlerini Al
+		for (int i = 0; i < 5; i++)
+		{
+			if (PlayerCardPower + 2 == DeskCards[i]->CardPower)
+			{
+				CardInfo.CardPower = PlayerCardPower + 2;
+				CardInfo.CardSymbol = DeskCards[i]->CardSymbol;
+				break;
+			}
+		}
+		CardInfo.bIsWin = true;
+		return CardInfo;
+	}
+	//1 Kucuk 3 Buyuk Var Mi Control Et
+	if (bOneValueSmaller && bOneValueGreater && bTwoValueGreater && bThreeValueGreater)
+	{
+		//3 Buyuk Kartin Degerlerini Al
+		for (int i = 0; i < 5; i++)
+		{
+			if (PlayerCardPower + 3 == DeskCards[i]->CardPower)
+			{
+				CardInfo.CardPower = PlayerCardPower + 2;
+				CardInfo.CardSymbol = DeskCards[i]->CardSymbol;
+				break;
+			}
+		}
+		CardInfo.bIsWin = true;
+		return CardInfo;
+	}
+	//4 Buyuk Var Mi Control Et
+	if (bOneValueSmaller && bOneValueGreater && bTwoValueGreater && bThreeValueGreater)
+	{
+		//4 Buyuk Kartin Degerlerini Al
+		for (int i = 0; i < 5; i++)
+		{
+			if (PlayerCardPower + 4 == DeskCards[i]->CardPower)
+			{
+				CardInfo.CardPower = PlayerCardPower + 2;
+				CardInfo.CardSymbol = DeskCards[i]->CardSymbol;
+				break;
+			}
+		}
+		CardInfo.bIsWin = true;
+		return CardInfo;
+	}
+	//Array Olmuyorsa GG;
+	return CardInfo;
+}
 FWinnerCardInfo ACasinoGamemode::Poker_Straight(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
 {
 	FWinnerCardInfo CardInfo;
 	CardInfo.WinFunctionName = TEXT("Straight");
+	CardInfo.bIsWin = false;
 	//Check Player Hand Can be Valid for Straight and they aren't same power
 	uint8 PlayerCardsDifferance = FMath::Abs(PlayerCards[0]->CardPower - PlayerCards[1]->CardPower);
 	if (PlayerCardsDifferance <= 4 && (PlayerCards[0]->CardPower - PlayerCards[1]->CardPower) != 0)
@@ -299,7 +493,6 @@ FWinnerCardInfo ACasinoGamemode::Poker_Straight(TArray <class ACard*> PlayerCard
 			}
 			if (!bIsThereBetweenCard)
 			{
-				CardInfo.bIsWin = false;
 				return CardInfo;
 			}
 			//Aralarinda bir kart var, kalan senaryolar = kucukten 2 kucuk, buyukten 2 buyuk, kucukten 1 kucuk ve buyukten 1 buyuk
@@ -376,18 +569,92 @@ FWinnerCardInfo ACasinoGamemode::Poker_Straight(TArray <class ACard*> PlayerCard
 				return CardInfo;
 			}
 			//Oyuncu Kent yapamadi
-			CardInfo.bIsWin = false;
 			return CardInfo;
 		}
 		/*else*/ if(PlayerCardsDifferance == 3)
 		{
+			//Oyuncunun kartlari arasinda 2 tane kart var
+			//Elindeki buyuk karttan 1 deger kucuk kart var mi kontrol et
+			bool bOneValueSmallerThanBigger = false;
+			ACard* PlayersBigCard = Poker_ReturnHigherCard(PlayerCards[0], PlayerCards[1]);
+			uint8 PlayersBigCardsPower = PlayersBigCard->CardPower;
+			for(int i = 0; i < 5; i++)
+			{
+				if (PlayersBigCardsPower - 1 == DeskCards[i]->CardPower)
+				{
+					bOneValueSmallerThanBigger = true;
+					break;
+				}
+			}
+			//Elindeki buyuk karttan 2 deger kucuk kart var mi kontrol et
+			bool bTwoValueSmallerThanBigger = false;
+			for(int i = 0; i < 5; i++)
+			{
+				if (PlayersBigCardsPower - 2 == DeskCards[i]->CardPower)
+				{
+					bTwoValueSmallerThanBigger = true;
+					break;
+				}
+			}
+			if (!(bOneValueSmallerThanBigger && bTwoValueSmallerThanBigger))
+				//Oyuncu elindeki 2 kart ile Kent yapamiyor, kartlari bireysel kontrol et!
+			{
+				return Poker_Straight_Individual_Checker(PlayerCards, DeskCards);
+			}
+			//Kod buraya kadar calismis ise oyuncunun 2 kartinin ortasinda 2 kart var
+			//Gerekli kosullar kucuk karttan 1 kucuk veya buyuk karttan 1 buyuk kartin ortada olmasi gerekiyor
+			//Buyuk karttan 1 buyuk kart var mi kontrol et
+			for(int i = 0; i < 5; i++)
+			{
+				if (PlayersBigCardsPower + 1 == DeskCards[i]->CardPower)
+				{
+					CardInfo.CardPower = DeskCards[i]->CardPower;
+					CardInfo.CardSymbol = DeskCards[i]->CardSymbol;
+					CardInfo.bIsWin = true;
+					return CardInfo;
+				}
+			}
+			//Kucuk karttan 1 kucuk kart var mi kontrol et
+			for(int i = 0; i < 5; i++)
+			{
+				if (PlayersBigCardsPower - 4 == DeskCards[i]->CardPower)
+				{
+					CardInfo.CardPower = PlayersBigCardsPower;
+					CardInfo.CardSymbol = PlayersBigCard->CardSymbol;
+					CardInfo.bIsWin = true;
+					return CardInfo;
+				}
+			}
+			//Kent yapamadi
 			return CardInfo;
 		}
 		/*else*/ if(PlayerCardsDifferance == 4)
 		{
+			//Oyuncunun kartlari arasinda 3 kart var
+			uint8 BetweenCardPower = (PlayerCards[0]->CardPower + PlayerCards[1]->CardPower) / 2;
+			bool bIsThereTrueBetweenCard = false; //Ortadaki
+			bool bIsThereSmallBetweenCard = false; //Kucukten 1 buyuk
+			bool bIsThereBigBetweenCard = false; //Buyukten 1 kucuk
+			
+			for(int i = 0; i < 5; i++)
+			{
+				if(BetweenCardPower == DeskCards[i]->CardPower) bIsThereTrueBetweenCard = true;
+				if(BetweenCardPower - 1 == DeskCards[i]->CardPower) bIsThereSmallBetweenCard = true;
+				if(BetweenCardPower + 1 == DeskCards[i]->CardPower) bIsThereBigBetweenCard = true;
+			}
+			if(!(bIsThereTrueBetweenCard && bIsThereSmallBetweenCard && bIsThereBigBetweenCard))
+			{
+				//Oyuncunun kartlari arasinda kart yok, individual olarak kontrol et
+				return Poker_Straight_Individual_Checker(PlayerCards, DeskCards);
+			}
+			//Aralarinda uc kart var, buyuk kartin verisini yolla
+			ACard* PlayersBigCard = Poker_ReturnHigherCard(PlayerCards[0], PlayerCards[1]);
+			CardInfo.CardPower = BetweenCardPower + 2;
+			CardInfo.CardSymbol = PlayersBigCard->CardSymbol;
+			CardInfo.bIsWin = true;
 			return CardInfo;
 		}
-		else // default
+		else // default //Kodun buraya girmesi imkansiz
 		{
 			return CardInfo;
 		}
@@ -397,21 +664,40 @@ FWinnerCardInfo ACasinoGamemode::Poker_Straight(TArray <class ACard*> PlayerCard
 		if ((PlayerCards[0]->CardPower - PlayerCards[1]->CardPower) == 0) //Player has same powered card
 		{
 			ACard* BetterCard = Poker_ReturnHigherCard(PlayerCards[0], PlayerCards[1]);
-			//Do something
-			return CardInfo;
+			return Poker_Straight_Individual(BetterCard, DeskCards);
 		}
 		/*else*/ //Check 2 Cards Separately
 		{
-			//Do more thing
-			return CardInfo;
+			return Poker_Straight_Individual_Checker(PlayerCards, DeskCards);
 		}
 	}
+}
+FWinnerCardInfo ACasinoGamemode::Poker_ThreeOfAKind_Individual(class ACard* PlayerCard, TArray<class ACard*> DeskCards)
+{
+	FWinnerCardInfo CardInfo;
+	CardInfo.WinFunctionName = TEXT("Three of a Kind_Individual It Musn't Be Out Of Scope");
+	CardInfo.bIsWin = false;
+
+	uint8 CardPairCount = 0;
+	for (int i = 0; i < 5; i++)
+	{
+		if (PlayerCard->CardPower == DeskCards[i]->CardPower)
+		{
+			CardPairCount++;
+		}
+	}
+	if (CardPairCount >= 2)
+	{
+		CardInfo.bIsWin = true;
+	}
+	return CardInfo;
 }
 FWinnerCardInfo ACasinoGamemode::Poker_ThreeOfAKind(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
 {
 	FWinnerCardInfo CardInfo;
 	CardInfo.WinFunctionName = TEXT("Three of a Kind");
-	if (PlayerCards[0]->CardPower == PlayerCards[1]->CardPower)
+	CardInfo.bIsWin = false;
+	if (PlayerCards[0]->CardPower == PlayerCards[1]->CardPower) //Kartlar ayni, Bir tane daha bulsan yeter
 	{
 		for (int i = 0; i < 5; i++)
 		{
@@ -423,58 +709,35 @@ FWinnerCardInfo ACasinoGamemode::Poker_ThreeOfAKind(TArray <class ACard*> Player
 			}
 		}
 	}
-	/*else*/
+	/*else*/ //Individual Pair Check
 	{
-		uint8 FirstCardPairCount = 0;
-		for (int i = 0; i < 5; i++)
-		{
-			if (PlayerCards[0]->CardPower == DeskCards[i]->CardPower)
-			{
-				FirstCardPairCount++;
-			}
-		}
-		uint8 SecondCardPairCount = 0;
-		for (int i = 0; i < 5; i++)
-		{
-			if (PlayerCards[1]->CardPower == DeskCards[i]->CardPower)
-			{
-				SecondCardPairCount++;
-			}
-		}
-		if (FirstCardPairCount >= 2 && SecondCardPairCount < 2)
+		bool bHasFirstCard2MorePair = Poker_ThreeOfAKind_Individual(PlayerCards[0],DeskCards).bIsWin;
+		bool bHasSecondCard2MorePair = Poker_ThreeOfAKind_Individual(PlayerCards[1],DeskCards).bIsWin;
+
+		if (bHasFirstCard2MorePair && !bHasSecondCard2MorePair)
 		{
 			CardInfo.CardPower = PlayerCards[0]->CardPower;
 			CardInfo.CardSymbol = PlayerCards[0]->CardSymbol;
 			CardInfo.bIsWin = true;
 			return CardInfo;
 		}
-		/*else*/ if (FirstCardPairCount < 2 && SecondCardPairCount >= 2)
+		/*else*/ if (!bHasFirstCard2MorePair && bHasSecondCard2MorePair)
 		{
 			CardInfo.CardPower = PlayerCards[1]->CardPower;
 			CardInfo.CardSymbol = PlayerCards[1]->CardSymbol;
 			CardInfo.bIsWin = true;
 			return CardInfo;
 		}
-		/*else*/ if (FirstCardPairCount >= 2 && SecondCardPairCount >= 2)
+		/*else*/ if (bHasFirstCard2MorePair && bHasSecondCard2MorePair)
 		{
-			if(PlayerCards[0]->CardPower > PlayerCards[1]->CardPower)
-			{
-				CardInfo.CardPower = PlayerCards[0]->CardPower;
-				CardInfo.CardSymbol = PlayerCards[0]->CardSymbol;
-				CardInfo.bIsWin = true;
-				return CardInfo;
-			}
-			/*else*/
-			{
-				CardInfo.CardPower = PlayerCards[1]->CardPower;
-				CardInfo.CardSymbol = PlayerCards[1]->CardSymbol;
-				CardInfo.bIsWin = true;
-				return CardInfo;
-			}
+			ACard* PlayersPowerfullCard = Poker_ReturnHigherCard(PlayerCards[0], PlayerCards[1]);
+			CardInfo.CardPower = PlayersPowerfullCard->CardPower;
+			CardInfo.CardSymbol = PlayersPowerfullCard->CardSymbol;
+			CardInfo.bIsWin = true;
+			return CardInfo;
 		}
 		/*else*/
 		{
-			CardInfo.bIsWin = false;
 			return CardInfo;
 		}
 	}
@@ -504,10 +767,29 @@ FWinnerCardInfo ACasinoGamemode::Poker_TwoPair(TArray <class ACard*> PlayerCards
 	}
 	return CardInfo;
 }
+FWinnerCardInfo ACasinoGamemode::Poker_Pair_Individual(ACard* PlayerCard, TArray<class ACard*> DeskCards)
+{
+	FWinnerCardInfo CardInfo;
+	CardInfo.WinFunctionName = TEXT("Pair_Individual It Shouldnt be outside in a scope");
+	CardInfo.bIsWin = false;
+
+	CardInfo.CardSymbol = PlayerCard->CardSymbol;
+	CardInfo.CardPower = PlayerCard->CardPower;
+	for (int i = 0; i < 5; i++)
+	{
+		if (PlayerCard->CardPower == DeskCards[i]->CardPower)
+		{
+			CardInfo.bIsWin = true;
+			if (DeskCards[i]->CardSymbol > CardInfo.CardSymbol) CardInfo.CardSymbol = DeskCards[i]->CardSymbol;
+		}
+	}
+	return CardInfo;
+}
 FWinnerCardInfo ACasinoGamemode::Poker_Pair(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
 {
 	FWinnerCardInfo CardInfo;
 	CardInfo.WinFunctionName = TEXT("Pair");
+	CardInfo.bIsWin = false;
 	//Player Has Pair On His Hand
 	if (PlayerCards[0]->CardPower == PlayerCards[1]->CardPower)
 	{
@@ -517,66 +799,40 @@ FWinnerCardInfo ACasinoGamemode::Poker_Pair(TArray <class ACard*> PlayerCards, T
 		{
 			CardInfo.CardSymbol = PlayerCards[1]->CardSymbol;
 		}
+		CardInfo.bIsWin = true;
 		return CardInfo;
 	}
 	//Check Player Has Pair With Desk
-	bool bIsCardZeroHasPair = false;
-	for (int i = 0; i < 5; i++)
+	FWinnerCardInfo PlayerCard1Info = Poker_Pair_Individual(PlayerCards[0], DeskCards);
+	FWinnerCardInfo PlayerCard2Info = Poker_Pair_Individual(PlayerCards[1], DeskCards);
+
+	if(PlayerCard1Info.bIsWin && !PlayerCard2Info.bIsWin)
 	{
-		if (DeskCards[i]->CardPower==PlayerCards[0]->CardPower) bIsCardZeroHasPair = true;
+		CardInfo.CardPower = PlayerCard1Info.CardPower;
+		CardInfo.CardSymbol = PlayerCard1Info.CardSymbol;
+		CardInfo.bIsWin = true;
+		return CardInfo;
 	}
-	bool bIsCardOneHasPair = false;
-	for (int i = 0; i < 5; i++)
+	if(!PlayerCard1Info.bIsWin && PlayerCard2Info.bIsWin)
 	{
-		if (DeskCards[i]->CardPower==PlayerCards[1]->CardPower) bIsCardOneHasPair = true;
+		CardInfo.CardPower = PlayerCard2Info.CardPower;
+		CardInfo.CardSymbol = PlayerCard2Info.CardSymbol;
+		CardInfo.bIsWin = true;
+		return CardInfo;
 	}
-	if (bIsCardZeroHasPair)
+	if(PlayerCard1Info.bIsWin && PlayerCard2Info.bIsWin)
 	{
-		if (!bIsCardOneHasPair)
+		CardInfo.CardPower = PlayerCard1Info.CardPower;
+		CardInfo.CardSymbol = PlayerCard1Info.CardSymbol;
+		if(PlayerCard1Info.CardPower > PlayerCard2Info.CardPower)
 		{
-			CardInfo.CardPower = PlayerCards[0]->CardPower;
-			CardInfo.CardSymbol = PlayerCards[0]->CardSymbol;
-			return CardInfo;
+			CardInfo.CardPower = PlayerCard2Info.CardPower;
+			CardInfo.CardSymbol = PlayerCard2Info.CardSymbol;
 		}
-		/*else*/
-		{
-			if (PlayerCards[1]->CardPower > CardInfo.CardPower)
-			{
-				CardInfo.CardPower = PlayerCards[1]->CardPower;
-				CardInfo.CardSymbol = PlayerCards[1]->CardSymbol;
-				return CardInfo;
-			}
-			/*else*/ if (PlayerCards[1]->CardPower == CardInfo.CardPower)
-			{
-				if (PlayerCards[1]->CardSymbol > CardInfo.CardSymbol)
-				{
-					CardInfo.CardPower = PlayerCards[1]->CardPower;
-					CardInfo.CardSymbol = PlayerCards[1]->CardSymbol;
-					return CardInfo;
-				}
-				/*else*/
-				{
-					CardInfo.CardPower = PlayerCards[0]->CardPower;
-					CardInfo.CardSymbol = PlayerCards[0]->CardSymbol;
-					return CardInfo;
-				}
-			}
-		}
+		CardInfo.bIsWin = true;
+		return CardInfo;
 	}
-	/*else*/
-	{
-		if (bIsCardOneHasPair)
-		{
-			CardInfo.CardPower = PlayerCards[1]->CardPower;
-			CardInfo.CardSymbol = PlayerCards[1]->CardSymbol;
-			return CardInfo;
-		}
-		/*else*/
-		{
-			CardInfo.bIsWin = false;
-			return CardInfo;
-		}
-	}
+	return CardInfo;
 }
 FWinnerCardInfo ACasinoGamemode::Poker_HighCard(TArray <class ACard*> PlayerCards)
 {

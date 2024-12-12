@@ -51,9 +51,13 @@ public:
 	static FWinnerCardInfo Poker_Quad(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards);
 	static FWinnerCardInfo Poker_FullHouse(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards);
 	static FWinnerCardInfo Poker_Flush(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards);
+	static FWinnerCardInfo Poker_Straight_Individual_Checker(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards);
+	static FWinnerCardInfo Poker_Straight_Individual(class ACard* PlayerCard, TArray<class ACard*> DeskCards);
 	static FWinnerCardInfo Poker_Straight(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards);
+	static FWinnerCardInfo Poker_ThreeOfAKind_Individual(class ACard* PlayerCard, TArray<class ACard*> DeskCards);
 	static FWinnerCardInfo Poker_ThreeOfAKind(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards);
 	static FWinnerCardInfo Poker_TwoPair(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards);
+	static FWinnerCardInfo Poker_Pair_Individual(ACard* PlayerCard, TArray<class ACard*> DeskCards);
 	static FWinnerCardInfo Poker_Pair(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards);
 	static FWinnerCardInfo Poker_HighCard(TArray <class ACard*> PlayerCards);
 	static class ACard* Poker_ReturnHigherCard(class ACard* Card1, class ACard* Card2);
