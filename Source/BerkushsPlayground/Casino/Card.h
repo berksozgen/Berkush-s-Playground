@@ -41,14 +41,21 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 ShowFrontFace = 0; //0 = No One, 1 = Owner, 2 = Desk Card (Everyone)
+
+	UFUNCTION()
+	void OnRep_CardFrontSprite();
+	UFUNCTION()
+	void OnRep_CardBackSprite();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(ReplicatedUsing = OnRep_CardFrontSprite)
 	UPaperSprite* CardFrontSprite;
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(ReplicatedUsing = OnRep_CardBackSprite)
 	UPaperSprite* CardBackSprite;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	UPaperSpriteComponent* CardFront;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	UPaperSpriteComponent* CardBack;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
