@@ -34,15 +34,24 @@ class BERKUSHSPLAYGROUND_API ACasinoGamemode : public AMultiplayerGameMode
 	ACasinoGamemode();
 
 public:
-	UPROPERTY(BlueprintReadWrite)
-	FTransform PokerTable;
+	virtual void BeginPlay() override;
 
+	public:
 	TSubclassOf<class AActor> CardClass;
 
-	TArray<class ACard*> PokerCards;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FTransform DeckSpawnPosition;
+	
+	void PokerGame(TArray<class ACasinoPlayer*> Players, TArray<class AActor*> Cards); //Bu burada mi olmali cozemedim
 
-	void PokerInitilizaer();
-	void PokerGame(TArray<class ACasinoPlayer*> Players, TArray<class AActor*> Cards);
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiCast_PokerInitilizaer();
+
+
+private:
+	
+	TArray<class ACard*> PokerCards;
+	
 
 	AActor* Poker_WhoWinner(TArray<class ACasinoPlayer*> Players, TArray<class ACard*> DeskCards);
 

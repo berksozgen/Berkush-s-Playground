@@ -4,23 +4,29 @@
 #include "CasinoGamemode.h"
 #include "Card.h"
 #include "CasinoPlayer.h"
+
+
 //variable = (condition) ? expressionTrue : expressionFalse;
 
 
 ACasinoGamemode::ACasinoGamemode()
 {
-	PokerInitilizaer();
-
-}
-
-void ACasinoGamemode::PokerInitilizaer()
-{
 	ConstructorHelpers::FClassFinder<AActor> CardBPClass(TEXT("/Game/Casino/BP_Card"));
 	if (!ensure(CardBPClass.Class != nullptr)) return;
 
 	CardClass = CardBPClass.Class;
+}
+
+void ACasinoGamemode::BeginPlay()
+{
+	Super::BeginPlay();
 	
-	
+	MultiCast_PokerInitilizaer();
+}
+
+void ACasinoGamemode::MultiCast_PokerInitilizaer_Implementation()
+{
+	UE_LOG(LogTemp, Warning, TEXT("PokerTable::PokerInitilizaer"));
 	ACard* CurrentCard;
 	UWorld* World = GetWorld();
 
@@ -30,7 +36,7 @@ void ACasinoGamemode::PokerInitilizaer()
 	{
 		for (int j = 2; j < 15; j++)
 		{
-			CurrentCard = Cast<ACard>(World->SpawnActorDeferred<AActor>(CardClass, PokerTable));
+			CurrentCard = Cast<ACard>(World->SpawnActorDeferred<AActor>(CardClass, DeckSpawnPosition));
 			CurrentCard->CardSymbol = i;
 			CurrentCard->CardPower = j;
 			//CurrentCard->SetActorLabel(FString::Printf(TEXT("Poker Card = Symbol = %d, Power = %d"), i, j));
@@ -40,10 +46,6 @@ void ACasinoGamemode::PokerInitilizaer()
 	}
 }
 
-void ACasinoGamemode::PokerGame(TArray<class ACasinoPlayer*> Players, TArray<class AActor*> Cards)
-{
-	
-}
 
 AActor* ACasinoGamemode::Poker_WhoWinner(TArray<class ACasinoPlayer*> Players, TArray<class ACard*> DeskCards)
 {
@@ -108,6 +110,13 @@ FWinnerCardInfo ACasinoGamemode::Poker_RoyalFlush(TArray <class ACard*> PlayerCa
 	FWinnerCardInfo CardInfo;
 	CardInfo.WinFunctionName = TEXT("Royal Flush");
 	CardInfo.bIsWin = false;
+    FWinnerCardInfo StraightFlush = Poker_StraightFlush(PlayerCards, DeskCards);
+	if (StraightFlush.CardPower == 14)
+	{
+		CardInfo.CardPower = 14;
+		CardInfo.CardSymbol = StraightFlush.CardSymbol;
+		CardInfo.bIsWin = true;
+	}
 	return CardInfo;
 }
 FWinnerCardInfo ACasinoGamemode::Poker_StraightFlush(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
@@ -946,3 +955,8 @@ ACard* ACasinoGamemode::Poker_ReturnHigherCard(class ACard* Card1, class ACard* 
 	if (Card1->CardSymbol > Card2->CardSymbol) return Card1;
 	return Card2;
 }
+
+
+
+
+

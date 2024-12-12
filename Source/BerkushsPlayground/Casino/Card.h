@@ -5,17 +5,22 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
-#include "Components/TextRenderComponent.h"
+#include "PaperSprite.h"
+#include "PaperSpriteComponent.h"
+#include "Engine/DataTable.h"
 
 #include "Card.generated.h"
 
-static TArray<FString> CardFrontImages = { "🃒","🃓","🃔","🃕","🃖","🃗","🃘","🃙","🃚","🃛","🃝","🃞","🃑", /*Sinek*/
-									"🂢","🂣","🂤","🂥","🂦","🂧","🂨","🂩","🂪","🂫","🂭","🂮","🂡", /*Maca*/
-									"🃂","🃃","🃄","🃅","🃆","🃇","🃈","🃉","🃊","🃋","🃍","🃎","🃁", /*Karo*/
-									"🂲","🂳","🂴","🂵","🂶","🂷","🂸","🂹","🂺","🂻","🂽","🂾","🂱" }; /*Kupa*/
+USTRUCT(BlueprintType)
+struct FCardSprites : public FTableRowBase
+{
+	GENERATED_BODY()
 
-static TArray<FString> CardSymbols = {"Sinek","Maca","Karo","Kupa"};
-
+public:
+	/** montage **/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPaperSprite* Sprite;
+};
 
 UCLASS()
 class BERKUSHSPLAYGROUND_API ACard : public AActor
@@ -34,13 +39,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta =(ExposeOnSpawn = true))
 	uint8 CardPower;
 
-	UPROPERTY(BlueprintReadWrite)
-	UTextRenderComponent* CardDemoText;
-
-	UPROPERTY(BlueprintReadWrite)
-	FString CardFrontImage;
 	UPROPERTY(BlueprintReadOnly)
-	FString CardBackImage = TEXT("🂠");
+	int32 ShowFrontFace = 0; //0 = No One, 1 = Owner, 2 = Desk Card (Everyone)
+	
+	UPROPERTY(BlueprintReadOnly)
+	UPaperSprite* CardFrontSprite;
+	UPROPERTY(BlueprintReadOnly)
+	UPaperSprite* CardBackSprite;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPaperSpriteComponent* CardFront;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPaperSpriteComponent* CardBack;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UDataTable* SpriteTable;
 
 
 protected:
