@@ -24,7 +24,24 @@ APokerTable::APokerTable()
 void APokerTable::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	if (HasAuthority())
+	{
+		if(UWorld* World = GetWorld())
+		{
+			float Delay = 5.f;
+			FTimerHandle TimerHandle;
+			World->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]
+			{
+				UE_LOG(LogTemp, Display, TEXT("Timer Fired"));
+				DeckSpawnPosition = GetActorTransform();
+				FVector SpawnLocation = GetActorLocation();
+				SpawnLocation.Z +=  150.f;
+				DeckSpawnPosition.SetLocation(SpawnLocation);
+				Server_PokerInitilizaer(DeckSpawnPosition);
+			}),Delay,false/*in loop*/);
+		}
+	}
 }
 
 // Called every frame
@@ -34,10 +51,14 @@ void APokerTable::Tick(float DeltaTime)
 
 }
 
-void APokerTable::PokerInitiliazer()
+void APokerTable::Server_PokerInitilizaer_Implementation(FTransform Transform)
+{
+	MultiCast_PokerInitilizaer(Transform);
+}
+
+void APokerTable::MultiCast_PokerInitilizaer_Implementation(FTransform Transform)
 {
 	UE_LOG(LogTemp, Warning, TEXT("PokerTable::PokerInitilizaer"));
-	ACard* CurrentCard;
 	UWorld* World = GetWorld();
 
 	if (World==nullptr) return;
@@ -46,7 +67,13 @@ void APokerTable::PokerInitiliazer()
 	{
 		for (int j = 2; j < 15; j++)
 		{
-			CurrentCard = Cast<ACard>(World->SpawnActorDeferred<AActor>(CardClass, DeckSpawnPosition));
+			FActorSpawnParameters SpawnInfo;
+			SpawnInfo.Owner = this;
+			SpawnInfo.Instigator = GetInstigator();
+			SpawnInfo.Name = *FString::Printf(TEXT("PokerCard_%i_%i"), i, j);
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			ACard* CurrentCard = Cast<ACard>(World->SpawnActor(CardClass, &Transform, SpawnInfo));
+			//CurrentCard = Cast<ACard>(World->SpawnActorDeferred<AActor>(CardClass, DeckSpawnPosition));
 			CurrentCard->CardSymbol = i;
 			CurrentCard->CardPower = j;
 			//CurrentCard->MyInitialize();
@@ -55,22 +82,11 @@ void APokerTable::PokerInitiliazer()
 	}
 }
 
-void APokerTable::Server_PokerInitilizaer_Implementation()
-{
-	PokerInitiliazer();
-	MultiCast_PokerInitilizaer();
-}
-
-void APokerTable::MultiCast_PokerInitilizaer_Implementation()
-{
-	PokerInitiliazer();
-}
-
 void APokerTable::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(APokerTable, PokerCards);
+	//DOREPLIFETIME(APokerTable, var name);
 }
 
 AActor* APokerTable::Poker_WhoWinner(TArray<class ACasinoPlayer*> Players, TArray<class ACard*> DeskCards)

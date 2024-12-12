@@ -10,17 +10,20 @@ ACard::ACard()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
 
 	SetRootComponent(CreateDefaultSubobject<USceneComponent>("Root"));
 	CardFront = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("CardFront"));
 	CardFront->SetupAttachment(GetRootComponent());
+	CardFront->SetIsReplicated(true);
 	CardBack = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("CardBack"));
 	CardBack->SetupAttachment(GetRootComponent());
-	bReplicates = true;
+	CardBack->SetIsReplicated(true);
 }
 
 void ACard::MyInitialize()
-{
+{/*
+	
 	if (HasAuthority())
 	{
 		SetActorLabel(FString::Printf(TEXT("Card Symbol = %d, Power = %d"), CardSymbol, CardPower));
@@ -31,27 +34,14 @@ void ACard::MyInitialize()
 			World->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]
 			{
 				UE_LOG(LogTemp, Display, TEXT("Timer Fired"));
-			}),Delay,false/*in loop*/);
+			}),Delay,false);
 		}
-	}
-}
-
-void ACard::OnRep_CardFrontSprite()
-{
-	CardFront->SetSprite(CardFrontSprite);
-}
-
-void ACard::OnRep_CardBackSprite()
-{
-	CardBack->SetSprite(CardBackSprite);
+	}*/
 }
 
 void ACard::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(ACard, CardFront);
-	DOREPLIFETIME(ACard, CardBack);
 }
 
 
@@ -59,8 +49,6 @@ void ACard::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimePro
 void ACard::BeginPlay()
 {
 	Super::BeginPlay();
-
-	MyInitialize();
 }
 
 // Called every frame

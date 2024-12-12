@@ -31,7 +31,8 @@ public:
 	// Sets default values for this actor's properties
 	ACard();
 
-	void MyInitialize();
+	UFUNCTION(BlueprintCallable)
+	virtual void MyInitialize();
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta =(ExposeOnSpawn = true))
 	uint8 CardSymbol;
@@ -41,21 +42,16 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 ShowFrontFace = 0; //0 = No One, 1 = Owner, 2 = Desk Card (Everyone)
-
-	UFUNCTION()
-	void OnRep_CardFrontSprite();
-	UFUNCTION()
-	void OnRep_CardBackSprite();
-
+	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	UPROPERTY(ReplicatedUsing = OnRep_CardFrontSprite)
+	UPROPERTY(BlueprintReadOnly)
 	UPaperSprite* CardFrontSprite;
-	UPROPERTY(ReplicatedUsing = OnRep_CardBackSprite)
+	UPROPERTY(BlueprintReadOnly)
 	UPaperSprite* CardBackSprite;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UPaperSpriteComponent* CardFront;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UPaperSpriteComponent* CardBack;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

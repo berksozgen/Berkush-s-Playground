@@ -47,19 +47,15 @@ public:
 	FTransform DeckSpawnPosition;
 	
 	void PokerGame(TArray<class ACasinoPlayer*> Players, TArray<class AActor*> Cards) {}; //Bu burada mi olmali cozemedim
-
-	UFUNCTION(BlueprintCallable)
-	void PokerInitiliazer();
 	
 	UFUNCTION(Server, Reliable)
-	void Server_PokerInitilizaer();
+	void Server_PokerInitilizaer(FTransform Transform);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void MultiCast_PokerInitilizaer();
+	void MultiCast_PokerInitilizaer(FTransform Transform);
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UPROPERTY(Replicated)
 	TArray<class ACard*> PokerCards;
 
 
