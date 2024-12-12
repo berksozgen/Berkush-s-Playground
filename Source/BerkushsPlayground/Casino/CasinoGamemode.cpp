@@ -4,7 +4,7 @@
 #include "CasinoGamemode.h"
 #include "Card.h"
 #include "CasinoPlayer.h"
-#include "HairStrandsInterface.h"
+//variable = (condition) ? expressionTrue : expressionFalse;
 
 
 ACasinoGamemode::ACasinoGamemode()
@@ -115,6 +115,27 @@ FWinnerCardInfo ACasinoGamemode::Poker_StraightFlush(TArray <class ACard*> Playe
 	FWinnerCardInfo CardInfo;
 	CardInfo.WinFunctionName = TEXT("Straight Flush");
 	CardInfo.bIsWin = false;
+
+	TArray<ACard*> StraightCards = Poker_Straight_Array(PlayerCards, DeskCards);
+	if (StraightCards.Num() < 5) return CardInfo; //devamini kontrol etmeye gerek yok
+	uint8 SinekCount = 0;
+	uint8 MacaCount = 0;
+	uint8 KaroCount = 0;
+	uint8 KupaCount = 0;
+	for(auto Card : StraightCards)
+	{
+		if (Card->CardSymbol == 0) SinekCount++;
+		else if (Card->CardSymbol == 1) MacaCount++;
+		else if (Card->CardSymbol == 2) KaroCount++;
+		else if (Card->CardSymbol == 3) KupaCount++;
+	}
+	if(SinekCount == 5 || MacaCount == 5 || KaroCount == 5 || KupaCount == 5)
+	{ //Hepsi icin ayri logic kurmam gerekebilir buna bak! ama calisiyor yani btw
+		FWinnerCardInfo PokerStraightCardInfo = Poker_Straight(PlayerCards, DeskCards);
+		CardInfo.CardPower = PokerStraightCardInfo.CardPower;
+		CardInfo.CardSymbol = PokerStraightCardInfo.CardSymbol;
+		CardInfo.bIsWin = true;
+	}
 	return CardInfo;
 }
 FWinnerCardInfo ACasinoGamemode::Poker_Quad(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
@@ -122,6 +143,51 @@ FWinnerCardInfo ACasinoGamemode::Poker_Quad(TArray <class ACard*> PlayerCards, T
 	FWinnerCardInfo CardInfo;
 	CardInfo.WinFunctionName = TEXT("Quad");
 	CardInfo.bIsWin = false;
+	
+	uint8 FirstCardQuadCount = 0;
+	uint8 SecondCardQuadCount = 0;
+	//Elindeki iki kart es ise 2, degil ise 3 tane daha kart bulmamiz lazim
+	if(PlayerCards[0]->CardPower == PlayerCards[1]->CardPower)
+	{
+		FirstCardQuadCount++;
+		SecondCardQuadCount++;
+	}
+	//Ortadaki es kartlari bu
+	for(int i = 0; i < 5; i++)
+	{
+		if(PlayerCards[0]->CardPower == DeskCards[i]->CardPower) FirstCardQuadCount++;
+		if(PlayerCards[1]->CardPower == DeskCards[i]->CardPower) SecondCardQuadCount++;
+	}
+	//Quad sayisi 3 olmussa kazaniyor
+	if(FirstCardQuadCount == 3 && SecondCardQuadCount < 3)
+	{
+		CardInfo.CardPower = PlayerCards[0]->CardPower;
+		CardInfo.CardSymbol = 3; //En iyisi olmasi lazim
+		CardInfo.bIsWin = true;
+		return CardInfo;
+	}
+	if (FirstCardQuadCount < 3 && SecondCardQuadCount == 3)
+	{
+		CardInfo.CardPower = PlayerCards[1]->CardPower;
+		CardInfo.CardSymbol = 3; //En iyisi olmasi lazim
+		CardInfo.bIsWin = true;
+		return CardInfo;
+	}
+	if (FirstCardQuadCount == 3 && SecondCardQuadCount == 3)
+	{
+		if(PlayerCards[0]->CardPower == PlayerCards[1]->CardPower)
+		{//Kartlarin ayni olma durumu
+			CardInfo.CardPower = PlayerCards[1]->CardPower;
+			CardInfo.CardSymbol = 3; //En iyisi olmasi lazim
+			CardInfo.bIsWin = true;
+			return CardInfo;
+		}
+		/*else*/
+		{
+			CardInfo.CardPower = (PlayerCards[0]->CardPower > PlayerCards[1]->CardPower) ? PlayerCards[0]->CardPower : PlayerCards[1]->CardPower;
+		}
+	}
+	
 	return CardInfo;
 }
 FWinnerCardInfo ACasinoGamemode::Poker_FullHouse(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
@@ -379,7 +445,7 @@ FWinnerCardInfo ACasinoGamemode::Poker_Straight_Individual(class ACard* PlayerCa
 		return CardInfo;
 	}
 	//4 Buyuk Var Mi Control Et
-	if (bOneValueSmaller && bOneValueGreater && bTwoValueGreater && bThreeValueGreater)
+	if (bOneValueGreater && bTwoValueGreater && bThreeValueGreater && bFourValueGreater)
 	{
 		//4 Buyuk Kartin Degerlerini Al
 		for (int i = 0; i < 5; i++)
@@ -672,6 +738,30 @@ FWinnerCardInfo ACasinoGamemode::Poker_Straight(TArray <class ACard*> PlayerCard
 		}
 	}
 }
+TArray<class ACard*> ACasinoGamemode::Poker_Straight_Array(TArray <class ACard*> PlayerCards, TArray<class ACard*> DeskCards)
+{
+	TArray<ACard*> StraightCards;
+	TArray<ACard*> PlayerAndDeskCards;
+	//Bu info mantiken en buyuk karti dondurecek, simdi ondan kucuk kartlari listeye ekle
+	FWinnerCardInfo StraightCardInfo = Poker_Straight(PlayerCards,DeskCards);
+	
+	if(StraightCardInfo.bIsWin)
+	{
+		PlayerAndDeskCards.Add(PlayerCards[0]);
+		PlayerAndDeskCards.Add(PlayerCards[1]);
+		for(int i = 0; i < 5; i++) PlayerAndDeskCards.Add(DeskCards[i]);
+
+		for(auto Card : PlayerAndDeskCards)
+		{
+			if (Card->CardPower == StraightCardInfo.CardPower) StraightCards.Add(Card);
+			else if (Card->CardPower -1 == StraightCardInfo.CardPower) StraightCards.Add(Card);
+			else if (Card->CardPower -2 == StraightCardInfo.CardPower) StraightCards.Add(Card);
+			else if (Card->CardPower -3 == StraightCardInfo.CardPower) StraightCards.Add(Card);
+			else if (Card->CardPower -4 == StraightCardInfo.CardPower) StraightCards.Add(Card);
+		}
+	}
+	return StraightCards; //5 ten fazla olabilir bu bu yuzden listeyi donecegiz straight flush icin
+}
 FWinnerCardInfo ACasinoGamemode::Poker_ThreeOfAKind_Individual(class ACard* PlayerCard, TArray<class ACard*> DeskCards)
 {
 	FWinnerCardInfo CardInfo;
@@ -794,11 +884,7 @@ FWinnerCardInfo ACasinoGamemode::Poker_Pair(TArray <class ACard*> PlayerCards, T
 	if (PlayerCards[0]->CardPower == PlayerCards[1]->CardPower)
 	{
 		CardInfo.CardPower = PlayerCards[0]->CardPower;
-		CardInfo.CardSymbol = PlayerCards[0]->CardSymbol;
-		if (PlayerCards[1]->CardSymbol > PlayerCards[0]->CardSymbol)
-		{
-			CardInfo.CardSymbol = PlayerCards[1]->CardSymbol;
-		}
+		CardInfo.CardSymbol = (PlayerCards[0]->CardSymbol > PlayerCards[1]->CardSymbol) ? PlayerCards[0]->CardSymbol : PlayerCards[1]->CardSymbol;
 		CardInfo.bIsWin = true;
 		return CardInfo;
 	}
