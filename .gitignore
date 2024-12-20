@@ -61,3 +61,5 @@ Session.vim
 *.csproj
 *.sln.DotSettings
 *.sln.DotSettings.user
+
+Content/Polygon

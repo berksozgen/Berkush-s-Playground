@@ -11,5 +11,7 @@ public class BerkushsPlaygroundTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V5;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_4;
 		ExtraModuleNames.Add("BerkushsPlayground");
+		
+		//lobalDefinitions.Add("UE_PROJECT_STEAMSHIPPINGID=2989320");
 	}
 }
