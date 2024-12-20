@@ -63,6 +63,7 @@ Session.vim
 *.sln.DotSettings.user
 
 Content/Polygon
+Content/UltraDynamicSky
 
 # Plugin unnecessary files
 Plugins/**/Binaries/*
