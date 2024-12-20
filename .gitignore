@@ -67,3 +67,4 @@ Content/Polygon
 # Plugin unnecessary files
 Plugins/**/Binaries/*
 Plugins/**/Intermediate/*
+Plugins/*/Intermediate/*
