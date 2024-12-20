@@ -24,10 +24,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category = "Berkush's Multiplayer Base")
 	class UBoxComponent* TriggerVolume;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Berkush's Multiplayer Base")
 	TArray<class AMovingPlatform*> PlatformsToTrigger;
 
 	UFUNCTION()

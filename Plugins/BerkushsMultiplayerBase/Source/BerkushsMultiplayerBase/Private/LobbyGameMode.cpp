@@ -4,6 +4,7 @@
 #include "LobbyGameMode.h"
 
 #include "TimerManager.h"
+#include "Engine/World.h"
 
 #include "MultiplayerGameInstance.h"
 

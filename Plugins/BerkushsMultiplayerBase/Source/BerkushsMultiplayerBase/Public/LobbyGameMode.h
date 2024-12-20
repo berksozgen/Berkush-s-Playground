@@ -20,7 +20,7 @@ public:
 
 	void Logout(AController* Exiting) override;
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Berkush's Multiplayer Base")
 	void StartGame(FString MapPath);
 	
 private:

@@ -24,7 +24,7 @@ public:
 	UPROPERTY(meta=(BindWidget))
 	class UTextBlock* ConnectionFraction;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category = "Berkush's Multiplayer Base")
 	bool bIsSelected = false;
 	
 	void Setup(class UMainMenu* Parent, uint32 Index);

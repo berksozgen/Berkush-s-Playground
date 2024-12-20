@@ -21,10 +21,10 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Berkush's Multiplayer Base")
 	float Speed = 20;
 
-	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
+	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true), Category = "Berkush's Multiplayer Base")
 	FVector TargetLocation;
 
 	void AddActiveTrigger();
@@ -34,7 +34,7 @@ private:
 	FVector GlobalTargetLocation;
 	FVector GlobalStartLocation;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Berkush's Multiplayer Base")
 	int ActiveTriggers = 1;
 	
 };

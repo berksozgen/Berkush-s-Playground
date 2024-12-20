@@ -15,13 +15,13 @@ struct FGoKartState
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	FTransform Transform;
+	FTransform Transform = FTransform();
 	
 	UPROPERTY()
-	FVector Velocity;
+	FVector Velocity = FVector::Zero();
 	
 	UPROPERTY()
-	FGoKartMove LastMove;
+	FGoKartMove LastMove = FGoKartMove();
 };
 
 struct FHermiteCubicSpline
