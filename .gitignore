@@ -63,3 +63,7 @@ Session.vim
 *.sln.DotSettings.user
 
 Content/Polygon
+
+# Plugin unnecessary files
+Plugins/**/Binaries/*
+Plugins/**/Intermediate/*
