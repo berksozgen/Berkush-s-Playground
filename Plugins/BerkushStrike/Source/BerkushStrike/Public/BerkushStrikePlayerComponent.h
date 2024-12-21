@@ -24,5 +24,9 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-		
+	UFUNCTION(BlueprintCallable, Category = "BerkushStrike")
+	void SetPlayerOverlay(class USkeletalMeshComponent* SkeletalMeshComponent, bool bIsRedTeam);
+
+	class UMaterialInstance* RedTeamOverlayMaterial;
+	class UMaterialInstance* BlueTeamOverlayMaterial;
 };

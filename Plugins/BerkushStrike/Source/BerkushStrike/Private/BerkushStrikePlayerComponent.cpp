@@ -2,6 +2,7 @@
 
 
 #include "BerkushStrikePlayerComponent.h"
+#include "UObject/ConstructorHelpers.h"
 
 // Sets default values for this component's properties
 UBerkushStrikePlayerComponent::UBerkushStrikePlayerComponent()
@@ -10,7 +11,10 @@ UBerkushStrikePlayerComponent::UBerkushStrikePlayerComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// ...
+	static ConstructorHelpers::FObjectFinder<UMaterialInstance> BlueTeamOverlay(TEXT("/BerkushStrike/Materials/MI_BlueTeam_Overlay"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInstance> RedTeamOverlay(TEXT("/BerkushStrike/Materials/MI_RedTeam_Overlay"));
+	RedTeamOverlayMaterial = RedTeamOverlay.Object;
+	BlueTeamOverlayMaterial = BlueTeamOverlay.Object;
 }
 
 
@@ -30,5 +34,11 @@ void UBerkushStrikePlayerComponent::TickComponent(float DeltaTime, ELevelTick Ti
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
+}
+
+void UBerkushStrikePlayerComponent::SetPlayerOverlay(class USkeletalMeshComponent* SkeletalMeshComponent, bool bIsRedTeam)
+{
+	if(bIsRedTeam) SkeletalMeshComponent->SetOverlayMaterial(RedTeamOverlayMaterial);
+	else SkeletalMeshComponent->SetOverlayMaterial(BlueTeamOverlayMaterial);
 }
 
