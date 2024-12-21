@@ -25,7 +25,7 @@ public class BerkushStrike : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core",
+				"Core", "BerkushsMultiplayerBase",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

@@ -10,5 +10,5 @@ AMultiplayerGameMode::AMultiplayerGameMode()
 	if (PlayerPawnBPClass.Class != NULL)
 	{
 		DefaultPawnClass = PlayerPawnBPClass.Class;
-	}
+	} 
 }

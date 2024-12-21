@@ -38,7 +38,7 @@ void UBerkushStrikePlayerComponent::TickComponent(float DeltaTime, ELevelTick Ti
 
 void UBerkushStrikePlayerComponent::SetPlayerOverlay(class USkeletalMeshComponent* SkeletalMeshComponent, bool bIsRedTeam)
 {
-	if(bIsRedTeam) SkeletalMeshComponent->SetOverlayMaterial(RedTeamOverlayMaterial);
-	else SkeletalMeshComponent->SetOverlayMaterial(BlueTeamOverlayMaterial);
+	SkeletalMeshComponent->SetOverlayMaterial(bIsRedTeam ? RedTeamOverlayMaterial : BlueTeamOverlayMaterial);
+	//Also dont forget the add overlay distance
 }
 
