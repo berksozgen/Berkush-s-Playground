@@ -199,7 +199,7 @@ void UMultiplayerGameInstance::OnCreateSessionComplete(FName SessionName, bool b
 	UWorld* World = GetWorld();
 	if (!ensure(World!=nullptr)) return;
 
-	World->ServerTravel("/Game/Maps/Lobby/Lobby?listen"); //change this
+	World->ServerTravel(FString::Printf(TEXT("%s?listen"), *LobbyPath));
 }
 
 void UMultiplayerGameInstance::Join(uint32 Index)
@@ -247,5 +247,5 @@ void UMultiplayerGameInstance::LoadMainMenu()
 {
 	APlayerController* PlayerController = GetFirstLocalPlayerController();
 	if (!ensure(PlayerController!=nullptr)) return;
-	PlayerController->ClientTravel("/Game/MenuSystem/MainMenu",TRAVEL_Absolute); //Also Change This
+	PlayerController->ClientTravel(*MainMenuPath,TRAVEL_Absolute);
 }

@@ -40,6 +40,12 @@ public:
 	virtual void LoadMainMenu() override;
 
 	void RefreshServerList() override;
+
+	UPROPERTY(EditAnywhere, Category = "Berkush's Multiplayer Base")
+	FString MainMenuPath = TEXT("/Game/Maps/MainMenu");
+
+	UPROPERTY(EditAnywhere, Category = "Berkush's Multiplayer Base")
+	FString LobbyPath = TEXT("/Game/Maps/Lobby/Lobby");
 	
 private:
 	TSubclassOf<class UUserWidget> MenuClass; //class yazmak forward decklarition oluyor galiba, include u burada yapmadik diye belirttik, normalde gerek yok
