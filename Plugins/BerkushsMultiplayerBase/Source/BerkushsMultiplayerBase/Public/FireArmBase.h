@@ -68,7 +68,16 @@ struct FSFireArmInfo : public FTableRowBase
 	UParticleSystem* FireEffect = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Berkush's Multiplayer Base")
+	UParticleSystem* HitEffect = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Berkush's Multiplayer Base")
+	UParticleSystem* BloodEffect = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Berkush's Multiplayer Base")
 	USoundCue* FireSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Berkush's Multiplayer Base")
+	USoundCue* HitSound = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Berkush's Multiplayer Base")
 	USoundCue* ReloadSound = nullptr;
@@ -119,6 +128,8 @@ public:
 	// Sets default values for this actor's properties
 	AFireArmBase();
 
+	
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -131,10 +142,29 @@ public:
 	USkeletalMeshComponent* GunSkeletalMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Berkush's Multiplayer Base")
+	USkeletalMeshComponent* MagazineSkeletalMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Berkush's Multiplayer Base")
 	FSFireArmInfo WeaponInfo;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Berkush's Multiplayer Base")
+	int32 MagazineAmmo;
+	
 	UFUNCTION(BlueprintCallable, Category="Berkush's Multiplayer Base")
-	virtual void Shoot();
+	virtual void StartShooting();
+
+	UFUNCTION(BlueprintCallable, Category="Berkush's Multiplayer Base")
+	virtual void StopShooting();
+
+	void ShootingHandler();
+
+	bool bIsCurrentlyShooting { false };
+
+	UFUNCTION(Server, Reliable, WithValidation, Category = "Berkush's Multiplayer Base")
+	void Server_Shooting();
+
+	UFUNCTION(NetMulticast, Unreliable, Category="Berkush's Multiplayer Base")
+	void Multicast_Shooting(const FHitResult& Hit);
 
 private:
 	FTimerHandle FShootingHandler;
