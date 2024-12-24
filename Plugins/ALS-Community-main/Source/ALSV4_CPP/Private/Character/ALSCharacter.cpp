@@ -13,9 +13,13 @@
 AALSCharacter::AALSCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	PolygonSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("PolygonSkeletalMesh"));
+	PolygonSkeletalMesh->SetupAttachment(GetMesh());
+	PolygonSkeletalMesh->SetRelativeLocation(FVector(0.0f, -7.5f, 0.0f));
+	
 	HeldObjectRoot = CreateDefaultSubobject<USceneComponent>(TEXT("HeldObjectRoot"));
 	HeldObjectRoot->SetupAttachment(GetMesh());
-
+	
 	SkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
 	SkeletalMesh->SetupAttachment(HeldObjectRoot);
 

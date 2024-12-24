@@ -48,6 +48,10 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	//Berkush Extra
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Polygon")
+	class USkeletalMeshComponent* PolygonSkeletalMesh;
+
 	/** Ragdoll System */
 
 	/** Implement on BP to get required get up animation according to character's state */
