@@ -15,3 +15,4 @@ class BERKUSHSPLAYGROUND_API ABerkushs_ALSCharacter : public AALSCharacter
 	GENERATED_BODY()
 	
 };
+//
