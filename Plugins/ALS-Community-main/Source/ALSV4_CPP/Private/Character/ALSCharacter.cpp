@@ -15,7 +15,9 @@ AALSCharacter::AALSCharacter(const FObjectInitializer& ObjectInitializer)
 {
 	PolygonSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("PolygonSkeletalMesh"));
 	PolygonSkeletalMesh->SetupAttachment(GetMesh());
-	PolygonSkeletalMesh->SetRelativeLocation(FVector(0.0f, -7.5f, 0.0f));
+	//PolygonSkeletalMesh->SetRelativeLocation(FVector(0.0f, -7.5f, 0.0f));
+	PolygonFPSCameraLocation = CreateDefaultSubobject<USceneComponent>(TEXT("PolygonFPSCameraLocation"));
+	PolygonFPSCameraLocation->SetupAttachment(PolygonSkeletalMesh, TEXT("Head"));
 	
 	HeldObjectRoot = CreateDefaultSubobject<USceneComponent>(TEXT("HeldObjectRoot"));
 	HeldObjectRoot->SetupAttachment(GetMesh());
@@ -98,7 +100,13 @@ FTransform AALSCharacter::GetThirdPersonPivotTarget()
 
 FVector AALSCharacter::GetFirstPersonCameraTarget()
 {
-	return GetMesh()->GetSocketLocation(TEXT("FP_Camera"));
+	return PolygonFPSCameraLocation->GetComponentLocation();
+	/*
+	FVector PolygonCameraLocation = PolygonSkeletalMesh->GetSocketLocation(TEXT("Head"));
+	PolygonCameraLocation.Y+=7.5f;
+	return PolygonCameraLocation;
+	*/
+	//return GetMesh()->GetSocketLocation(TEXT("FP_Camera"));
 }
 
 void AALSCharacter::OnOverlayStateChanged(EALSOverlayState PreviousState)

@@ -51,6 +51,8 @@ public:
 	//Berkush Extra
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Polygon")
 	class USkeletalMeshComponent* PolygonSkeletalMesh;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Polygon")
+	class USceneComponent* PolygonFPSCameraLocation;
 
 	/** Ragdoll System */
 
