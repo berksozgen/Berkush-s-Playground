@@ -13,11 +13,13 @@
 AALSCharacter::AALSCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	//Berk start
 	PolygonSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("PolygonSkeletalMesh"));
 	PolygonSkeletalMesh->SetupAttachment(GetMesh());
 	//PolygonSkeletalMesh->SetRelativeLocation(FVector(0.0f, -7.5f, 0.0f));
 	PolygonFPSCameraLocation = CreateDefaultSubobject<USceneComponent>(TEXT("PolygonFPSCameraLocation"));
 	PolygonFPSCameraLocation->SetupAttachment(PolygonSkeletalMesh, TEXT("Head"));
+	//Berk End
 	
 	HeldObjectRoot = CreateDefaultSubobject<USceneComponent>(TEXT("HeldObjectRoot"));
 	HeldObjectRoot->SetupAttachment(GetMesh());
