@@ -64,28 +64,28 @@ struct FSPlayerCustomizationData
 	FName FamilyName = TEXT("BattleRoyale");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bIsMale;
+	bool bIsMale = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 SkeletalMeshIndex;
+	int32 SkeletalMeshIndex = 0;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 SkeletalTextureIndex;
+	int32 SkeletalTextureIndex = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SkeletalHueShiftingAmount = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FSPlayerAttachmentData HairOrHatData;
+	FSPlayerAttachmentData HairOrHatData= FSPlayerAttachmentData();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FSPlayerAttachmentData FaceWearData;
+	FSPlayerAttachmentData FaceWearData = FSPlayerAttachmentData();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FSPlayerAttachmentData BeardOrMaskData;
+	FSPlayerAttachmentData BeardOrMaskData = FSPlayerAttachmentData();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FSPlayerAttachmentData PatchData;
+	FSPlayerAttachmentData PatchData = FSPlayerAttachmentData();
 	
 };
 
@@ -132,9 +132,9 @@ private:
 	TSubclassOf<class UUserWidget> MenuClass; //class yazmak forward decklarition oluyor galiba, include u burada yapmadik diye belirttik, normalde gerek yok
 	TSubclassOf<class UUserWidget> InGameMenuClass;
 	
-	class UMainMenu* Menu;
+	class UMainMenu* Menu = nullptr;
 
-	IOnlineSessionPtr SessionInterface;
+	IOnlineSessionPtr SessionInterface = nullptr;
 	TSharedPtr<class FOnlineSessionSearch> SessionSearch;
 
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);	

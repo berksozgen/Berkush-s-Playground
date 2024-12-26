@@ -20,5 +20,19 @@
 			"LoadingPhase": "Default"
 		}
 	],
-	"SupportURL": ""
+	"SupportURL": "",
+	"Plugins": [
+		{
+			"Name": "EnhancedInput",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemSteam",
+			"Enabled": true
+		}
+	]
 }
