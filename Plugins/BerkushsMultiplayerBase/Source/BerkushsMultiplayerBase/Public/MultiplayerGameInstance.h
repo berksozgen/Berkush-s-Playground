@@ -6,6 +6,7 @@
 #include "Engine/GameInstance.h"
 #include "OnlineSubsystem.h"
 #include "BerkushsMultiplayerBase/MenuSystem/MenuInterface.h"
+#include "Runtime/Engine/Classes/Engine/DataTable.h"
 #include "Interfaces/OnlineSessionInterface.h"
 
 #include "MultiplayerGameInstance.generated.h"
@@ -13,6 +14,87 @@
 /**
  * 
  */
+
+
+USTRUCT(BlueprintType)
+struct FSPlayerCustomizationFamilies : public FTableRowBase
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName FamilyName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<USkeletalMesh*> MaleSkeletalMeshes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<USkeletalMesh*> FemaleSkeletalMeshes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<UTexture2D*> AvailableTextures;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<UStaticMesh*> HairOrHats;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<UStaticMesh*> FaceWears;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<UStaticMesh*> BeardOrMasks;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<UStaticMesh*> Patches;
+};
+
+USTRUCT(BlueprintType)
+struct FSPlayerAttachmentData
+{
+	GENERATED_USTRUCT_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 StaticMeshIndex = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 SelectedTextureIndex = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float HueShiftingAmount = 0.f;
+};
+
+USTRUCT(BlueprintType)
+struct FSPlayerCustomizationData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName FamilyName = TEXT("BattleRoyale");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsMale;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 SkeletalMeshIndex;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 SkeletalTextureIndex;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SkeletalHueShiftingAmount = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FSPlayerAttachmentData HairOrHatData;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FSPlayerAttachmentData FaceWearData;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FSPlayerAttachmentData BeardOrMaskData;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FSPlayerAttachmentData PatchData;
+	
+};
+
 UCLASS()
 class BERKUSHSMULTIPLAYERBASE_API UMultiplayerGameInstance : public UGameInstance, public IMenuInterface
 {
@@ -46,6 +128,11 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Berkush's Multiplayer Base")
 	FString LobbyPath = TEXT("/Game/Maps/Lobby/Lobby");
+
+	UFUNCTION(BlueprintCallable, Category = "Berkush's Multiplayer Base")
+	FSPlayerCustomizationData GetPlayerCustomizationData() { return PlayerCustomizationData; }
+	UFUNCTION(BlueprintCallable, Category = "Berkush's Multiplayer Base")
+	void SetPlayerCustomizationData(FSPlayerCustomizationData _PlayerCustomizationData) { PlayerCustomizationData = _PlayerCustomizationData; }
 	
 private:
 	TSubclassOf<class UUserWidget> MenuClass; //class yazmak forward decklarition oluyor galiba, include u burada yapmadik diye belirttik, normalde gerek yok
@@ -64,5 +151,7 @@ private:
 
 	FString DesiredServerName;
 	void CreateSession();
+
+	FSPlayerCustomizationData PlayerCustomizationData;
 	
 };
