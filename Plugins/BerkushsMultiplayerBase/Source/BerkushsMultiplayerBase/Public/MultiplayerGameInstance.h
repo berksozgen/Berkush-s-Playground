@@ -122,11 +122,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Berkush's Multiplayer Base")
 	FString LobbyPath = TEXT("/Game/Maps/Lobby/Lobby");
-
-	UFUNCTION(BlueprintCallable, Category = "Berkush's Multiplayer Base")
-	FSPlayerCustomizationData GetPlayerCustomizationData() { return PlayerCustomizationData; }
-	UFUNCTION(BlueprintCallable, Category = "Berkush's Multiplayer Base")
-	void SetPlayerCustomizationData(FSPlayerCustomizationData _PlayerCustomizationData) { PlayerCustomizationData = _PlayerCustomizationData; }
 	
 private:
 	TSubclassOf<class UUserWidget> MenuClass; //class yazmak forward decklarition oluyor galiba, include u burada yapmadik diye belirttik, normalde gerek yok
@@ -145,7 +140,4 @@ private:
 
 	FString DesiredServerName;
 	void CreateSession();
-
-	FSPlayerCustomizationData PlayerCustomizationData;
-	
 };
