@@ -1,4 +1,4 @@
-// 2024'te R. Berk Sozgen tarafindan gelistirilmeye baslanmistir.
+// 2024'te R. Berk Sozgen tarafindan gelistirilmeye baslanmistir. GameDev.tv UE4 MP kursu baz alinmistir.
 
 #include "GoKart.h"
 

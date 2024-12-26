@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// 2024'te R. Berk Sozgen tarafindan gelistirilmeye baslanmistir.
 
 
 #include "MultiplayerGameInstance.h"
