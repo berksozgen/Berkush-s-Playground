@@ -51,7 +51,7 @@ struct FSPlayerAttachmentData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 StaticMeshIndex = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) /*Textures Arent Change Anything*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) /*Textures Aren't Change Anything*/
 	float HueShiftingAmount = 0.f;
 };
 
