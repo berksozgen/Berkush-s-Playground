@@ -22,9 +22,6 @@ struct FSPlayerCustomizationFamilies : public FTableRowBase
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName FamilyName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<USkeletalMesh*> MaleSkeletalMeshes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -54,10 +51,7 @@ struct FSPlayerAttachmentData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 StaticMeshIndex = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 SelectedTextureIndex = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) /*Textures Arent Change Anything*/
 	float HueShiftingAmount = 0.f;
 };
 

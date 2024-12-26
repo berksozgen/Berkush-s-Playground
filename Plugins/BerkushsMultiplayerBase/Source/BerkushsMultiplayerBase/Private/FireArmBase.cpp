@@ -4,7 +4,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
-#include "Sound/SoundCue.h"
+
 
 // Sets default values
 AFireArmBase::AFireArmBase()
