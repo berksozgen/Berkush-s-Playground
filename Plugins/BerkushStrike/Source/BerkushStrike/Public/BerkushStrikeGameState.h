@@ -7,6 +7,8 @@
 #include "GameFramework/GameState.h"
 #include "BerkushStrikeGameState.generated.h"
 
+class ABerkushStrikePlayerState;
+
 UENUM(BlueprintType, Category = "BerkushStrike")
 enum class EBerkushStrikeGameModeType : uint8
 {
@@ -25,6 +27,29 @@ class BERKUSHSTRIKE_API ABerkushStrikeGameState : public AGameState
 	GENERATED_BODY()
 
 public:
+	ABerkushStrikeGameState();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Winner, Category = "BerkushStrike")
+	int WinningPlayer;
+
+	UFUNCTION()
+	void OnRep_Winner();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "BerkushStrike")
+	void OnVictory();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "BerkushStrike")
+	void OnRestart();
+
+	UFUNCTION(NetMulticast, Reliable, Category = "BerkushStrike")
+	void TriggerRestart();
+
+	UFUNCTION(BlueprintCallable)
+	ABerkushStrikePlayerState* GetPlayerStateByIndex(int PlayerIndex);
+
+	//Galip Hocanin Varlar bunlar
 	
 	UFUNCTION(BlueprintCallable, Category = "BerkushStrike")
 	void StartRound();

@@ -2,7 +2,44 @@
 
 
 #include "BerkushStrikeGameState.h"
+#include "BerkushStrikePlayerState.h"
+#include "Net/UnrealNetwork.h"
 
+ABerkushStrikeGameState::ABerkushStrikeGameState() :
+	WinningPlayer(-1)
+{
+	
+}
+
+void ABerkushStrikeGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ABerkushStrikeGameState, WinningPlayer);
+}
+
+void ABerkushStrikeGameState::OnRep_Winner()
+{
+	if (WinningPlayer >= 0) OnVictory();
+}
+
+void ABerkushStrikeGameState::TriggerRestart_Implementation()
+{
+	OnRestart();
+}
+
+ABerkushStrikePlayerState* ABerkushStrikeGameState::GetPlayerStateByIndex(int PlayerIndex)
+{
+	for (APlayerState* PS : PlayerArray)
+	{
+		ABerkushStrikePlayerState* State = Cast<ABerkushStrikePlayerState>(PS);
+		if (State && State->PlayerIndex == PlayerIndex) return State;
+	}
+
+	return nullptr;
+}
+
+
+//Bunlar benim
 void ABerkushStrikeGameState::StartRound()
 {
 	//Spawn Weapons

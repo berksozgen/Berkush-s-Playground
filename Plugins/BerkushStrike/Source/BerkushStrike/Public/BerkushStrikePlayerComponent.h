@@ -6,6 +6,14 @@
 #include "Components/ActorComponent.h"
 #include "BerkushStrikePlayerComponent.generated.h"
 
+UENUM(BlueprintType)
+enum class EBerkushStrikeRoundResults : uint8
+{
+	Draw,
+	Won,
+	Lost,
+};
+
 UENUM(BlueprintType, Category = "BerkushStrike")
 enum class EBerkushStrikePlayerTeam : uint8
 {
