@@ -6,6 +6,13 @@
 #include "Components/ActorComponent.h"
 #include "BerkushStrikePlayerComponent.generated.h"
 
+UENUM(BlueprintType, Category = "BerkushStrike")
+enum class EBerkushStrikePlayerTeam : uint8
+{
+	Red,
+	Blue,
+	Spectator,
+};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BERKUSHSTRIKE_API UBerkushStrikePlayerComponent : public UActorComponent
@@ -26,6 +33,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "BerkushStrike")
 	void SetPlayerOverlay(class USkeletalMeshComponent* SkeletalMeshComponent, bool bIsRedTeam);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BerkushStrike")
+	EBerkushStrikePlayerTeam PlayerTeam = EBerkushStrikePlayerTeam::Spectator;
 
 	class UMaterialInstance* RedTeamOverlayMaterial;
 	class UMaterialInstance* BlueTeamOverlayMaterial;

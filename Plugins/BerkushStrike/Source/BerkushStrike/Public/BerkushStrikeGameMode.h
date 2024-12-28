@@ -3,21 +3,21 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/GameModeBase.h"
+#include "GameFramework/GameMode.h"
 #include "BerkushStrikeGameMode.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class BERKUSHSTRIKE_API ABerkushStrikeGameMode : public AGameModeBase
+class BERKUSHSTRIKE_API ABerkushStrikeGameMode : public AGameMode
 {
 	GENERATED_BODY()
 
 	ABerkushStrikeGameMode();
 
-	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
-
-	void EndRound();
+	virtual void OnPostLogin(AController* NewPlayer) override;
+	
+	TSubclassOf<APawn> PlayerPawnClass;
 	
 };

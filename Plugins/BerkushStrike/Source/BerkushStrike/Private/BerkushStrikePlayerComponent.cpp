@@ -9,7 +9,7 @@ UBerkushStrikePlayerComponent::UBerkushStrikePlayerComponent()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> BlueTeamOverlay(TEXT("/BerkushStrike/Materials/MI_BlueTeam_Overlay"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> RedTeamOverlay(TEXT("/BerkushStrike/Materials/MI_RedTeam_Overlay"));
