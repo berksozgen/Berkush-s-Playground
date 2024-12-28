@@ -2,6 +2,8 @@
 
 
 #include "BerkushStrikePlayerComponent.h"
+
+#include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 
 // Sets default values for this component's properties
@@ -22,9 +24,7 @@ UBerkushStrikePlayerComponent::UBerkushStrikePlayerComponent()
 void UBerkushStrikePlayerComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
 	// ...
-	
 }
 
 

@@ -33,7 +33,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "BerkushStrike")
 	void SetPlayerOverlay(class USkeletalMeshComponent* SkeletalMeshComponent, bool bIsRedTeam);
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BerkushStrike")
 	EBerkushStrikePlayerTeam PlayerTeam = EBerkushStrikePlayerTeam::Spectator;
 
