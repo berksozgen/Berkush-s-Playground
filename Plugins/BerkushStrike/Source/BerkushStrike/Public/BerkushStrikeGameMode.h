@@ -20,4 +20,5 @@ class BERKUSHSTRIKE_API ABerkushStrikeGameMode : public AGameMode
 	
 	TSubclassOf<APawn> PlayerPawnClass;
 	
+	
 };

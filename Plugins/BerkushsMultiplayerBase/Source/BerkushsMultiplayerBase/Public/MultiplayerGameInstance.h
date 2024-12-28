@@ -15,6 +15,14 @@
  * 
  */
 
+UENUM(BlueprintType, Category = "BerkushsMultiplayerBase")
+enum class EAvailableViewModes : uint8
+{
+	FPSOnly,
+	TPSOnly,
+	Free,
+};
+
 
 USTRUCT(BlueprintType)
 struct FSPlayerCustomizationFamilies : public FTableRowBase

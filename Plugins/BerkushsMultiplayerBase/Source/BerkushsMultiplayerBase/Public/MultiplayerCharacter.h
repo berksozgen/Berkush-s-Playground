@@ -16,7 +16,7 @@ struct FInputActionValue;
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 UCLASS(config=Game)
-class AMultiplayerCharacter : public ACharacter
+class AMultiplayerCharacter : public ACharacter, public IInterface
 {
 	GENERATED_BODY()
 
@@ -55,7 +55,7 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
-			
+	virtual void Interact();
 
 protected:
 	// APawn interface

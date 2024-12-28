@@ -128,3 +128,9 @@ void AMultiplayerCharacter::Look(const FInputActionValue& Value)
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
 }
+
+void AMultiplayerCharacter::Interact()
+{
+	
+}
+
