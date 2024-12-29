@@ -11,6 +11,19 @@ void ABerkushOnlineGM_Lobby::PostLogin(APlayerController* NewPlayer) //This is t
 {
 	Super::PostLogin(NewPlayer);
 
+	int32 NumberOfPlayers = GameState.Get()->PlayerArray.Num();
+	if(NumberOfPlayers)
+	{
+		UWorld* World = GetWorld();
+		if(World)
+		{
+			bUseSeamlessTravel = true;
+			World->ServerTravel(FString("/Game/Maps/StrikeMap?listen"));
+		}
+	}
+
+	/*
+	//OldCode
 	if(GameState) //Unreal tipi Cevreleyen Pointer kullaniyor, ciplak GameState e erismek icin get dememiz lazim
 	{
 		int32 NumberOfPlayers = GameState.Get()->PlayerArray.Num();
@@ -35,6 +48,7 @@ void ABerkushOnlineGM_Lobby::PostLogin(APlayerController* NewPlayer) //This is t
 			}
 		}
 	}
+	*/
 }
 
 void ABerkushOnlineGM_Lobby::Logout(AController* Exiting)
