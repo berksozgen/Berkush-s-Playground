@@ -6,7 +6,7 @@ public class BerkushsPlayground : ModuleRules
 {
 	public BerkushsPlayground(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PrivateDependencyModuleNames.AddRange(new string[] { "BerkushsMultiplayerBase", "BerkushOnline" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "BerkushOnline" });
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "Paper2D", "OnlineSubsystem", "OnlineSubsystemSteam"});
