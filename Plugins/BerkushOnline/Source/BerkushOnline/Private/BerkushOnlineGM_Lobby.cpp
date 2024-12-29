@@ -12,7 +12,7 @@ void ABerkushOnlineGM_Lobby::PostLogin(APlayerController* NewPlayer) //This is t
 	Super::PostLogin(NewPlayer);
 
 	int32 NumberOfPlayers = GameState.Get()->PlayerArray.Num();
-	if(NumberOfPlayers)
+	if(NumberOfPlayers == 2)
 	{
 		UWorld* World = GetWorld();
 		if(World)
