@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+
+#include "Interfaces/OnlineSessionInterface.h"
 #include "Menu.generated.h"
 
 /**
@@ -16,28 +18,76 @@ class BERKUSHONLINE_API UMenu : public UUserWidget
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Berkush Online|Menu")
-	void MenuSetup(int32 NumberOfPublicConnections = 8, FString TypeOfMatch = FString(TEXT("FreeForAll")));
+	void MenuSetup(int32 NumberOfPublicConnections = 8, FString TypeOfMatch = FString(TEXT("FreeForAll")), FString LobbyPath = FString(TEXT("/Game/Maps/Lobby/Lobby")));
 
 protected:
 	virtual bool Initialize() override;
-	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
+
+	//
+	// Callback for the custom delegates on BerkushOnlineSubsystem
+	// Bunlarin Ufunction Olmasi Gerekiyormus
+	//
+	UFUNCTION()
+	void OnCreateSession(bool bWasSuccessful);
+	void OnFindSessions(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful);
+	void OnJoinSession(EOnJoinSessionCompleteResult::Type Result);
+	UFUNCTION()
+	void OnDestroySession(bool bWasSuccessful);
+	UFUNCTION()
+	void OnStartSession(bool bWasSuccessful);
 
 private:
+#pragma region PrimaryMenuElements
 	UPROPERTY(meta = (BindWidget))
-	class UButton* B_Host;
+	class UButton* SinglePlayerButton;
 	UPROPERTY(meta = (BindWidget))
-	class UButton* B_Join;
+	class UButton* HostSessionButton;
+	UPROPERTY(meta = (BindWidget))
+	class UButton* JoinSessionButton;
+	UPROPERTY(meta = (BindWidget))
+	class UButton* CustomizeButton;
+	UPROPERTY(meta = (BindWidget))
+	class UButton* SettingsButton;
+	UPROPERTY(meta = (BindWidget))
+	class UButton* ExitButton;
+#pragma endregion PrimaryMenuElements
+#pragma region SecondaryMenuElements
+	UPROPERTY(meta = (BindWidget))
+	class UWidgetSwitcher* SecondaryMenuSwitcher;
+	UPROPERTY(meta = (BindWidget))
+	class UWidget* BlankMenu;
+	UPROPERTY(meta = (BindWidget))
+	class UWidget* SinglePlayerMenu;
+	UPROPERTY(meta = (BindWidget))
+	class UWidget* HostSessionMenu;
+	UPROPERTY(meta = (BindWidget))
+	class UWidget* JoinSessionMenu;
+	UPROPERTY(meta = (BindWidget))
+	class UWidget* CustomizeMenu;
+	UPROPERTY(meta = (BindWidget))
+	class UWidget* SettingsMenu;
+#pragma endregion SecondaryMenuElements
 
+#pragma region PrimaryMenuFunctions
 	UFUNCTION()
-	void HostButtonClicked();
+	void HostSessionButtonClicked();
 	UFUNCTION()
-	void JoinButtonClicked();
+	void JoinSessionButtonClicked();
+	UFUNCTION()
+	void CustomizeButtonClicked();
+	UFUNCTION()
+	void SettingsButtonClicked();
+	UFUNCTION()
+	void ExitButtonClicked();
+#pragma endregion PrimaryMenuFunctions
 
 	void MenuTearDown();
 
-	//The Subsystem desigfned to handle all online session functionality
-	class UBerkushOnlineSubsystem* OnlineSessionsSubsystem;
+	// The subsystem designed to handle all online session functionality
+	class UBerkushOnlineSubsystem* MultiplayerSessionsSubsystem;
 
-	int32 NumPublicConnections{8};
+	int32 NumPublicConnections{4};
 	FString MatchType{TEXT("FreeForAll")};
+	FString PathToLobby{TEXT("")};
 };
