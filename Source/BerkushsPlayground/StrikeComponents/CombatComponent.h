@@ -16,6 +16,7 @@ public:
 	UCombatComponent();
 	friend class AStrikeCharacter; //Tum degerlere (Protected ve Private ulasabiliyorz boyle)
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	void EquipWeapon(class AWeapon* WeaponToEquip);
 
@@ -24,7 +25,11 @@ protected:
 
 private:
 	class AStrikeCharacter* Character;
+
+	UPROPERTY(Replicated) //Anim Instance buna erisebilsin diye, Her Client anim instancelari kendi uzerinde cagiriyor.
 	class AWeapon* EquippedWeapon;
+	UPROPERTY(Replicated) //Anim Instance buna erisebilsin diye, Her Client anim instancelari kendi uzerinde cagiriyor.
+	bool bAiming;
 
 public:	
 	

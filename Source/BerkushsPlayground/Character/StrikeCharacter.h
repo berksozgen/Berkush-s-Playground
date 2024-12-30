@@ -37,6 +37,14 @@ class BERKUSHSPLAYGROUND_API AStrikeCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* EquipAction;
 
+	/** Crouch Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* CrouchAction;
+	
+	/** Aim Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* AimAction;
+
 public:
 	AStrikeCharacter();
 	virtual void Tick(float DeltaTime) override;
@@ -52,6 +60,11 @@ public:
 
 	//
 	void EquipPressed(const FInputActionValue& Value);
+	//
+	void CrouchPressed(const FInputActionValue& Value);
+	//
+	void AimPressed(const FInputActionValue& Value);
+	void AimReleased(const FInputActionValue& Value);
 
 protected:
 	virtual void BeginPlay() override;
@@ -85,4 +98,6 @@ private:
 	void Server_EquipButtonPressed();
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
+	bool IsWeaponEquipped();
+	bool IsAiming();
 };

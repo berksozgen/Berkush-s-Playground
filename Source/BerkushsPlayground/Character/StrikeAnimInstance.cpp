@@ -28,7 +28,8 @@ void UStrikeAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	Speed = Velocity.Size();
 
 	bIsInAir = StrikeCharacter->GetCharacterMovement()->IsFalling();
-
 	bIsAccelerating = StrikeCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.f; //Burda da ternary kullandi, goz alisikligi yapmak icin herhal
-	
+	bWeaponEquipped = StrikeCharacter->IsWeaponEquipped();
+	bIsCrouched = StrikeCharacter->bIsCrouched;
+	bAiming = StrikeCharacter->IsAiming();
 }

@@ -34,6 +34,8 @@ AStrikeCharacter::AStrikeCharacter()
 
 	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 	Combat->SetIsReplicated(true);
+
+	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 }
 
 void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -94,6 +96,13 @@ void AStrikeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 		// Equipping
 		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Started, this, &AStrikeCharacter::EquipPressed);
+		
+		// Crouching
+		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AStrikeCharacter::CrouchPressed);
+		
+		// Aiming
+		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &AStrikeCharacter::AimPressed);
+		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &AStrikeCharacter::AimReleased);
 	}
 	else
 	{
@@ -130,6 +139,28 @@ void AStrikeCharacter::EquipPressed(const FInputActionValue& Value) //Parametrel
 		{
 			Server_EquipButtonPressed();
 		}
+	}
+}
+
+void AStrikeCharacter::CrouchPressed(const FInputActionValue& Value)
+{
+	if (bIsCrouched) UnCrouch();
+	else Crouch();
+}
+
+void AStrikeCharacter::AimPressed(const FInputActionValue& Value)
+{
+	if (Combat)
+	{
+		Combat->bAiming = true;
+	}
+}
+
+void AStrikeCharacter::AimReleased(const FInputActionValue& Value)
+{
+	if (Combat)
+	{
+		Combat->bAiming = false;
 	}
 }
 
@@ -199,5 +230,15 @@ void AStrikeCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon) //RepNotify'
 	{
 		LastWeapon->ShowPickupWidget(false);
 	}
+}
+
+bool AStrikeCharacter::IsWeaponEquipped() //Yari replication ile ilgili sayilir bu aslinda, tum Clientlerde AnimInstance guncellemeleri ile ilgili
+{
+	return Combat && Combat->EquippedWeapon;
+}
+
+bool AStrikeCharacter::IsAiming() //Yari replication ile ilgili sayilir bu aslinda, tum Clientlerde AnimInstance guncellemeleri ile ilgili
+{
+	return Combat && Combat->bAiming;
 }
 #pragma endregion Replication
