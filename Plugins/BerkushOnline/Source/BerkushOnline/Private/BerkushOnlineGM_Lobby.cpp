@@ -39,7 +39,7 @@ void ABerkushOnlineGM_Lobby::PostLogin(APlayerController* NewPlayer) //This is t
 		if(World)
 		{
 			bUseSeamlessTravel = true;
-			World->ServerTravel(FString("/Game/FastPaced/Poolday/MAP_Poolday?listen"));
+			World->ServerTravel(FString("/Game/Maps/FastPaced/Poolday/MAP_Poolday?listen"));
 		}
 	}
 }
