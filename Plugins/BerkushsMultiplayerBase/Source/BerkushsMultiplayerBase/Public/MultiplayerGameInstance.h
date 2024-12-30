@@ -6,7 +6,6 @@
 #include "Engine/GameInstance.h"
 #include "OnlineSubsystem.h"
 #include "BerkushsMultiplayerBase/MenuSystem/MenuInterface.h"
-#include "Runtime/Engine/Classes/Engine/DataTable.h"
 #include "Interfaces/OnlineSessionInterface.h"
 
 #include "MultiplayerGameInstance.generated.h"
@@ -23,79 +22,6 @@ enum class EAvailableViewModes : uint8
 	Free,
 };
 
-
-USTRUCT(BlueprintType)
-struct FSPlayerCustomizationFamilies : public FTableRowBase
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<USkeletalMesh*> MaleSkeletalMeshes;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<USkeletalMesh*> FemaleSkeletalMeshes;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<UTexture2D*> AvailableTextures;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<UStaticMesh*> HairOrHats;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<UStaticMesh*> FaceWears;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<UStaticMesh*> BeardOrMasks;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<UStaticMesh*> Patches;
-};
-
-USTRUCT(BlueprintType)
-struct FSPlayerAttachmentData
-{
-	GENERATED_USTRUCT_BODY()
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 StaticMeshIndex = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) /*Textures Aren't Change Anything*/
-	float HueShiftingAmount = 0.f;
-};
-
-USTRUCT(BlueprintType)
-struct FSPlayerCustomizationData
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName FamilyName = TEXT("BattleRoyale");
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bIsMale = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 SkeletalMeshIndex = 0;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 SkeletalTextureIndex = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SkeletalHueShiftingAmount = 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FSPlayerAttachmentData HairOrHatData= FSPlayerAttachmentData();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FSPlayerAttachmentData FaceWearData = FSPlayerAttachmentData();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FSPlayerAttachmentData BeardOrMaskData = FSPlayerAttachmentData();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FSPlayerAttachmentData PatchData = FSPlayerAttachmentData();
-	
-};
 
 UCLASS()
 class BERKUSHSMULTIPLAYERBASE_API UMultiplayerGameInstance : public UGameInstance, public IMenuInterface

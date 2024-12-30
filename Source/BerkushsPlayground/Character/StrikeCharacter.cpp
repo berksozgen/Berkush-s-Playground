@@ -5,6 +5,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "BerkushsPlayground/StrikeComponents/CombatComponent.h"
 #include "BerkushsPlayground/Weapon/Weapon.h"
 #include "Camera/CameraComponent.h"
 #include "Components/WidgetComponent.h"
@@ -30,6 +31,9 @@ AStrikeCharacter::AStrikeCharacter()
 
 	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
 	OverheadWidget->SetupAttachment(RootComponent);
+
+	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
+	Combat->SetIsReplicated(true);
 }
 
 void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -39,6 +43,16 @@ void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	DOREPLIFETIME_CONDITION(AStrikeCharacter, OverlappingWeapon, COND_OwnerOnly);
 
 	//DOREPLIFETIME(AStrikeCharacter, OverlappingWeapon); //Boyle yapinca biri silah ustunde durunca herkeste gozulkuyor
+}
+
+void AStrikeCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	if(Combat)
+	{
+		Combat->Character = this;
+	}
 }
 
 void AStrikeCharacter::BeginPlay()
@@ -77,6 +91,9 @@ void AStrikeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AStrikeCharacter::EnhancedLook);
+
+		// Equipping
+		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Started, this, &AStrikeCharacter::EquipPressed);
 	}
 	else
 	{
@@ -99,6 +116,21 @@ void AStrikeCharacter::EnhancedLook(const FInputActionValue& Value)
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 	Turn(LookAxisVector.X);
 	LookUp(LookAxisVector.Y);
+}
+
+void AStrikeCharacter::EquipPressed(const FInputActionValue& Value) //Parametrelere gerek var mi bilmiyorum, Enhanced input mal ama biraz
+{
+	if (Combat)
+	{
+		if (HasAuthority())
+		{
+			Combat->EquipWeapon(OverlappingWeapon);
+		}
+		else
+		{
+			Server_EquipButtonPressed();
+		}
+	}
 }
 
 void AStrikeCharacter::MoveForward(float Value)
@@ -132,6 +164,15 @@ void AStrikeCharacter::LookUp(float Value)
 }
 #pragma endregion Input
 
+#pragma region Replication
+void AStrikeCharacter::Server_EquipButtonPressed_Implementation()
+{
+	if (Combat)
+	{
+		Combat->EquipWeapon(OverlappingWeapon);
+	}
+}
+
 void AStrikeCharacter::SetOverlappingWeapon(AWeapon* Weapon) //Bu kod, Weapon'un Collision Handle'lamasi yuzunden sadece serverde calisiyor
 {
 	if (OverlappingWeapon)
@@ -159,5 +200,4 @@ void AStrikeCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon) //RepNotify'
 		LastWeapon->ShowPickupWidget(false);
 	}
 }
-
-
+#pragma endregion Replication

@@ -33,17 +33,25 @@ class BERKUSHSPLAYGROUND_API AStrikeCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
 
+	/** Equip Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* EquipAction;
+
 public:
 	AStrikeCharacter();
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PostInitializeComponents() override;
 	
 	/** Called for movement input */
 	void EnhancedMove(const FInputActionValue& Value);
 
 	/** Called for looking input */
 	void EnhancedLook(const FInputActionValue& Value);
+
+	//
+	void EquipPressed(const FInputActionValue& Value);
 
 protected:
 	virtual void BeginPlay() override;
@@ -69,6 +77,12 @@ private:
 
 	UFUNCTION()
 	void OnRep_OverlappingWeapon(AWeapon* LastWeapon); //RepNotifylara sadece kendi turlerindeki seyi input param olarak verebiliyoruz
+
+	UPROPERTY(VisibleAnywhere)
+	class UCombatComponent* Combat;
+
+	UFUNCTION(Server, Reliable)
+	void Server_EquipButtonPressed();
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
 };
