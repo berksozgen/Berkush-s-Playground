@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MultiplayerGameMode.h"
+#include "GameFramework/GameModeBase.h"
 #include "LobbyGameMode.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class BERKUSHSMULTIPLAYERBASE_API ALobbyGameMode : public AMultiplayerGameMode
+class BERKUSHSMULTIPLAYERBASE_API ALobbyGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
