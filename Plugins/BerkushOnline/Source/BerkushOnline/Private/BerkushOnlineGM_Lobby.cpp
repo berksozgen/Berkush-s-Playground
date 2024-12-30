@@ -12,43 +12,36 @@ void ABerkushOnlineGM_Lobby::PostLogin(APlayerController* NewPlayer) //This is t
 	Super::PostLogin(NewPlayer);
 
 	int32 NumberOfPlayers = GameState.Get()->PlayerArray.Num();
+
+	if(GEngine) //Key mantiginin olayi, ayni keyde bir mesajdaha gonderince oncekinin ustune yaziyor
+	{
+		GEngine->AddOnScreenDebugMessage(
+			1,
+			60.f,
+			FColor::Yellow,
+			FString::Printf(TEXT("Players in game: %d"),NumberOfPlayers));
+
+		APlayerState* PlayerState = NewPlayer->GetPlayerState<APlayerState>();
+		if(PlayerState)
+		{
+			FString PlayerName = PlayerState->GetPlayerName();
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				60.f,
+				FColor::Cyan,
+				FString::Printf(TEXT("%s has joined the game!"),*PlayerName));
+		}
+	}
+	
 	if(NumberOfPlayers == 2)
 	{
 		UWorld* World = GetWorld();
 		if(World)
 		{
 			bUseSeamlessTravel = true;
-			World->ServerTravel(FString("/Game/Maps/StrikeMap?listen"));
+			World->ServerTravel(FString("/Game/FastPaced/Poolday/MAP_Poolday?listen"));
 		}
 	}
-
-	/*
-	//OldCode
-	if(GameState) //Unreal tipi Cevreleyen Pointer kullaniyor, ciplak GameState e erismek icin get dememiz lazim
-	{
-		int32 NumberOfPlayers = GameState.Get()->PlayerArray.Num();
-
-		if(GEngine) //Key mantiginin olayi, ayni keyde bir mesajdaha gonderince oncekinin ustune yaziyor
-		{
-			GEngine->AddOnScreenDebugMessage(
-				1,
-				60.f,
-				FColor::Yellow,
-				FString::Printf(TEXT("Players in game: %d"),NumberOfPlayers));
-
-			APlayerState* PlayerState = NewPlayer->GetPlayerState<APlayerState>();
-			if(PlayerState)
-			{
-				FString PlayerName = PlayerState->GetPlayerName();
-				GEngine->AddOnScreenDebugMessage(
-					-1,
-					60.f,
-					FColor::Cyan,
-					FString::Printf(TEXT("%s has joined the game!"),*PlayerName));
-			}
-		}
-	}
-	*/
 }
 
 void ABerkushOnlineGM_Lobby::Logout(AController* Exiting)
