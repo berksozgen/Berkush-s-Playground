@@ -152,7 +152,7 @@ void AStrikeCharacter::AimPressed(const FInputActionValue& Value)
 {
 	if (Combat)
 	{
-		Combat->bAiming = true;
+		Combat->SetAiming(true);
 	}
 }
 
@@ -160,7 +160,7 @@ void AStrikeCharacter::AimReleased(const FInputActionValue& Value)
 {
 	if (Combat)
 	{
-		Combat->bAiming = false;
+		Combat->SetAiming(false);
 	}
 }
 
