@@ -13,24 +13,44 @@ UCombatComponent::UCombatComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
-	// ...
+	BaseWalkSpeed = 600.f;
+	AimWalkSpeed = 350.f;
 }
 
 void UCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (Character)
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
+	}
 }
 
 void UCombatComponent::SetAiming(bool bIsAiming)
 {
 	bAiming = bIsAiming; //Client serverden geri donus beklemeden animasyonu guncellesin diye
 	Server_SetAiming(bIsAiming);
+	if (Character)
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
+	}
 	/*
 	if (!Character->HasAuthority())
 	{
 		Server_SetAiming(bIsAiming); //Bu wrape gerek var mi bilmiyorum, sonucta server kendinde de RPC cagirsa giren cikan olmayacak
 	}//Adam benim dedigimi dedi ak sonradan, neyse comment atayim da sonra kafam karisirsa bakarim
 	*/
+}
+
+void UCombatComponent::Server_SetAiming_Implementation(bool bIsAiming) //bAiming Replicated diye multicast atmaya gerek yok, Replicated degiskenler Server'dan tum Clientlere olacak sekilde esleniyor
+{
+	bAiming = bIsAiming;
+
+	if (Character)
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
+	}
 }
 
 void UCombatComponent::OnRep_EquippedWeapon()
@@ -40,11 +60,6 @@ void UCombatComponent::OnRep_EquippedWeapon()
 		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
 		Character->bUseControllerRotationYaw = true;
 	}
-}
-
-void UCombatComponent::Server_SetAiming_Implementation(bool bIsAiming) //bAiming Replicated diye multicast atmaya gerek yok, Replicated degiskenler Server'dan tum Clientlere olacak sekilde esleniyor
-{
-	bAiming = bIsAiming;
 }
 
 void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

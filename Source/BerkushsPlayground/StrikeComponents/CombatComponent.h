@@ -37,6 +37,11 @@ private:
 	class AWeapon* EquippedWeapon;
 	UPROPERTY(Replicated) //Anim Instance buna erisebilsin diye, Her Client anim instancelari kendi uzerinde cagiriyor.
 	bool bAiming;
+	
+	UPROPERTY(EditAnywhere)
+	float BaseWalkSpeed;
+	UPROPERTY(EditAnywhere)
+	float AimWalkSpeed;
 
 public:	
 	

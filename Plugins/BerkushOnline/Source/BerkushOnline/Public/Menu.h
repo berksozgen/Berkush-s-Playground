@@ -20,6 +20,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Berkush Online|Menu")
 	void MenuSetup(int32 NumberOfPublicConnections = 8, FString TypeOfMatch = FString(TEXT("FreeForAll")), FString LobbyPath = FString(TEXT("/Game/Maps/Lobby/Lobby")));
 
+	UFUNCTION(BlueprintCallable, Category = "Berkush Online|Menu")
+	void SetPrimaryButtonsRGB(float DeltaTime, float CycleTime);
+
 protected:
 	virtual bool Initialize() override;
 	virtual void NativeDestruct() override;
@@ -36,7 +39,6 @@ protected:
 	void OnDestroySession(bool bWasSuccessful);
 	UFUNCTION()
 	void OnStartSession(bool bWasSuccessful);
-
 private:
 #pragma region PrimaryMenuElements
 	UPROPERTY(meta = (BindWidget))
@@ -90,4 +92,8 @@ private:
 	int32 NumPublicConnections{4};
 	FString MatchType{TEXT("FreeForAll")};
 	FString PathToLobby{TEXT("")};
+	
+	float RedColorTime = 1.f;
+	float GreenColorTime = 0.f;
+	float BlueColorTime = 0.f;
 };

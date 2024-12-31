@@ -234,3 +234,30 @@ void UMenu::MenuTearDown()
 		}
 	}
 }
+
+void UMenu::SetPrimaryButtonsRGB(float DeltaTime, float CycleTime)
+{
+	//Red artacak, 1 olunca green artacak, green 1 olunca red azakup blue artacak, blue 1 olunce green azalip red artacak //Umarim negatif sayilar hata verdirtmiyordur
+	if(RedColorTime>=1.f)
+	{
+		BlueColorTime -= DeltaTime/CycleTime;
+		GreenColorTime += DeltaTime/CycleTime;
+	}
+	if (GreenColorTime>=1.f)
+	{
+		RedColorTime -= DeltaTime/CycleTime;
+		BlueColorTime += DeltaTime/CycleTime;
+	}
+	if (BlueColorTime>=1.f)
+	{
+		GreenColorTime -= DeltaTime/CycleTime;
+		RedColorTime += DeltaTime/CycleTime;
+	}
+	FLinearColor OutputColor = FLinearColor(RedColorTime, GreenColorTime, BlueColorTime);
+	SinglePlayerButton->SetBackgroundColor(OutputColor);
+	HostSessionButton->SetBackgroundColor(OutputColor);
+	JoinSessionButton->SetBackgroundColor(OutputColor);
+	CustomizeButton->SetBackgroundColor(OutputColor);
+	SettingsButton->SetBackgroundColor(OutputColor);
+	ExitButton->SetBackgroundColor(OutputColor);
+}
