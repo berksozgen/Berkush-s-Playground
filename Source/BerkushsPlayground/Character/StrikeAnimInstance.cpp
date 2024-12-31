@@ -35,6 +35,7 @@ void UStrikeAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	EquippedWeapon = StrikeCharacter->GetEquippedWeapon();
 	bIsCrouched = StrikeCharacter->bIsCrouched;
 	bAiming = StrikeCharacter->IsAiming();
+	TurningInPlace = StrikeCharacter->GetTurningInPlace();
 
 	//Offset Yaw for Strafing
 	FRotator AimRotaition = StrikeCharacter->GetBaseAimRotation(); //Bu global rotationu veriyor
