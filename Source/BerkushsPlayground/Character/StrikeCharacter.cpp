@@ -49,7 +49,6 @@ void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AStrikeCharacter, OverlappingWeapon, COND_OwnerOnly);
-
 	//DOREPLIFETIME(AStrikeCharacter, OverlappingWeapon); //Boyle yapinca biri silah ustunde durunca herkeste gozulkuyor
 }
 
@@ -57,10 +56,7 @@ void AStrikeCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if(Combat)
-	{
-		Combat->Character = this;
-	}
+	if(Combat) Combat->Character = this;
 }
 
 void AStrikeCharacter::BeginPlay()
@@ -98,7 +94,14 @@ void AStrikeCharacter::AimOffset(float DeltaTime)
 		bUseControllerRotationYaw = true;
 	}
 
-	AO_Pitch = GetBaseAimRotation().Pitch;
+	AO_Pitch = GetBaseAimRotation().Pitch; //Serverde rotasyon 0 360 arasinda gidiyor, Unrealin bok yemesi, //5 bayta dusuruyor
+	if(AO_Pitch > 90.f && !IsLocallyControlled()) //Niye IsLocally conterolled diyip -180.f cikarmadik onu anlamadim; bir ara test ederim
+	{
+		// map pitch from [270, 360) to [-90, 0)
+		FVector2D InRange(270.f, 360.f);
+		FVector2D OutRange(-90.f, 0.f);
+		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange,OutRange, AO_Pitch);
+	}
 }
 
 #pragma region Input
@@ -138,10 +141,7 @@ void AStrikeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &AStrikeCharacter::AimPressed);
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &AStrikeCharacter::AimReleased);
 	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Strike Karakteri EnhancedInputComponent'i Aktive Edemedi"));
-	}
+	else UE_LOG(LogTemp, Error, TEXT("Strike Karakteri EnhancedInputComponent'i Aktive Edemedi"));
 }
 
 void AStrikeCharacter::EnhancedMove(const FInputActionValue& Value)
@@ -165,14 +165,8 @@ void AStrikeCharacter::EquipPressed(const FInputActionValue& Value) //Parametrel
 {
 	if (Combat)
 	{
-		if (HasAuthority())
-		{
-			Combat->EquipWeapon(OverlappingWeapon);
-		}
-		else
-		{
-			Server_EquipButtonPressed();
-		}
+		if (HasAuthority()) Combat->EquipWeapon(OverlappingWeapon);
+		else Server_EquipButtonPressed();
 	}
 }
 
@@ -184,18 +178,12 @@ void AStrikeCharacter::CrouchPressed(const FInputActionValue& Value)
 
 void AStrikeCharacter::AimPressed(const FInputActionValue& Value)
 {
-	if (Combat)
-	{
-		Combat->SetAiming(true);
-	}
+	if (Combat) Combat->SetAiming(true);
 }
 
 void AStrikeCharacter::AimReleased(const FInputActionValue& Value)
 {
-	if (Combat)
-	{
-		Combat->SetAiming(false);
-	}
+	if (Combat) Combat->SetAiming(false);
 }
 
 void AStrikeCharacter::MoveForward(float Value)
@@ -232,10 +220,7 @@ void AStrikeCharacter::LookUp(float Value)
 #pragma region Replication
 void AStrikeCharacter::Server_EquipButtonPressed_Implementation()
 {
-	if (Combat)
-	{
-		Combat->EquipWeapon(OverlappingWeapon);
-	}
+	if (Combat) Combat->EquipWeapon(OverlappingWeapon);
 }
 
 void AStrikeCharacter::SetOverlappingWeapon(AWeapon* Weapon) //Bu kod, Weapon'un Collision Handle'lamasi yuzunden sadece serverde calisiyor
@@ -256,14 +241,8 @@ void AStrikeCharacter::SetOverlappingWeapon(AWeapon* Weapon) //Bu kod, Weapon'un
 
 void AStrikeCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon) //RepNotify'lar asla serverde calismaz! //Rep notify ile giren girdi degerleri, replikasyon olmadan onceki degeri dondurur, biraz kafa karistirici
 {
-	if (OverlappingWeapon)
-	{
-		OverlappingWeapon->ShowPickupWidget(true);
-	}
-	if (LastWeapon)
-	{
-		LastWeapon->ShowPickupWidget(false);
-	}
+	if (OverlappingWeapon) OverlappingWeapon->ShowPickupWidget(true);
+	if (LastWeapon) LastWeapon->ShowPickupWidget(false);
 }
 
 bool AStrikeCharacter::IsWeaponEquipped() //Yari replication ile ilgili sayilir bu aslinda, tum Clientlerde AnimInstance guncellemeleri ile ilgili
@@ -274,5 +253,11 @@ bool AStrikeCharacter::IsWeaponEquipped() //Yari replication ile ilgili sayilir 
 bool AStrikeCharacter::IsAiming() //Yari replication ile ilgili sayilir bu aslinda, tum Clientlerde AnimInstance guncellemeleri ile ilgili
 {
 	return Combat && Combat->bAiming;
+}
+
+AWeapon* AStrikeCharacter::GetEquippedWeapon() //Anim instance icin aslinda
+{
+	if (Combat == nullptr) return nullptr;
+	return Combat->EquippedWeapon;
 }
 #pragma endregion Replication

@@ -4,6 +4,7 @@
 #include "StrikeAnimInstance.h"
 
 #include "StrikeCharacter.h"
+#include "BerkushsPlayground/Weapon/Weapon.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -31,6 +32,7 @@ void UStrikeAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	bIsInAir = StrikeCharacter->GetCharacterMovement()->IsFalling();
 	bIsAccelerating = StrikeCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.f; //Burda da ternary kullandi, goz alisikligi yapmak icin herhal
 	bWeaponEquipped = StrikeCharacter->IsWeaponEquipped();
+	EquippedWeapon = StrikeCharacter->GetEquippedWeapon();
 	bIsCrouched = StrikeCharacter->bIsCrouched;
 	bAiming = StrikeCharacter->IsAiming();
 
@@ -50,4 +52,14 @@ void UStrikeAnimInstance::NativeUpdateAnimation(float DeltaTime)
 
 	AO_Yaw = StrikeCharacter->GetAO_Yaw();
 	AO_Pitch = StrikeCharacter->GetAO_Pitch();
+
+	if (bWeaponEquipped && EquippedWeapon && EquippedWeapon->GetWeaponMesh() && StrikeCharacter->GetMesh())
+	{
+		LeftHandTransform = EquippedWeapon->GetWeaponMesh()->GetSocketTransform(FName("LeftHandSocket"), ERelativeTransformSpace::RTS_World);
+		FVector OutPosition;
+		FRotator OutRotation;
+		StrikeCharacter->GetMesh()->TransformToBoneSpace(FName("hand_r"), LeftHandTransform.GetLocation(), FRotator::ZeroRotator, OutPosition, OutRotation);
+		LeftHandTransform.SetLocation(OutPosition);
+		LeftHandTransform.SetRotation(FQuat(OutRotation));
+	}
 }
