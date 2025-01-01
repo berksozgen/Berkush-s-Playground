@@ -14,6 +14,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "StrikeAnimInstance.h"
 
 AStrikeCharacter::AStrikeCharacter()
 {
@@ -64,6 +65,20 @@ void AStrikeCharacter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	if(Combat) Combat->Character = this;
+}
+
+void AStrikeCharacter::PlayFireMontage(bool bAiming)
+{
+	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && FireWeaponMontage)
+	{
+		AnimInstance->Montage_Play(FireWeaponMontage);
+		FName SectionName;
+		SectionName = bAiming ? FName("RifleAim") : FName("RifleHip");
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
 }
 
 void AStrikeCharacter::BeginPlay()
@@ -170,6 +185,10 @@ void AStrikeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		// Aiming
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &AStrikeCharacter::AimPressed);
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &AStrikeCharacter::AimReleased);
+
+		// Firing
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &AStrikeCharacter::FirePressed);
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &AStrikeCharacter::FireReleased);
 	}
 	else UE_LOG(LogTemp, Error, TEXT("Strike Karakteri EnhancedInputComponent'i Aktive Edemedi"));
 }
@@ -193,14 +212,8 @@ void AStrikeCharacter::EnhancedLook(const FInputActionValue& Value)
 
 void AStrikeCharacter::Jump()
 {
-	if(bIsCrouched)
-	{
-		UnCrouch();
-	}
-	else
-	{
-		Super::Jump();
-	}
+	if(bIsCrouched) UnCrouch();
+	else Super::Jump();
 }
 
 void AStrikeCharacter::EquipPressed(const FInputActionValue& Value) //Parametrelere gerek var mi bilmiyorum, Enhanced input mal ama biraz
@@ -226,6 +239,16 @@ void AStrikeCharacter::AimPressed(const FInputActionValue& Value)
 void AStrikeCharacter::AimReleased(const FInputActionValue& Value)
 {
 	if (Combat) Combat->SetAiming(false);
+}
+
+void AStrikeCharacter::FirePressed(const FInputActionValue& Value)
+{
+	if (Combat) Combat->FireButtonPressed(true);
+}
+
+void AStrikeCharacter::FireReleased(const FInputActionValue& Value)
+{
+	if (Combat) Combat->FireButtonPressed(false);
 }
 
 void AStrikeCharacter::MoveForward(float Value)

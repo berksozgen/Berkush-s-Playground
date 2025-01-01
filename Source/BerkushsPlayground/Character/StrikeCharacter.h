@@ -46,12 +46,18 @@ class BERKUSHSPLAYGROUND_API AStrikeCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* AimAction;
 
+	/** Fire Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* FireAction;
+
 public:
 	AStrikeCharacter();
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
+
+	void PlayFireMontage(bool bAiming);
 	
 	/** Called for movement input */
 	void EnhancedMove(const FInputActionValue& Value);
@@ -66,6 +72,9 @@ public:
 	//
 	void AimPressed(const FInputActionValue& Value);
 	void AimReleased(const FInputActionValue& Value);
+	//
+	void FirePressed(const FInputActionValue& Value);
+	void FireReleased(const FInputActionValue& Value);
 
 protected:
 	virtual void BeginPlay() override;
@@ -109,6 +118,9 @@ private:
 
 	ETurningInPlace TurningInPlace;
 	void TurnInPlace(float DeltaTime);
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	class UAnimMontage* FireWeaponMontage;
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped();

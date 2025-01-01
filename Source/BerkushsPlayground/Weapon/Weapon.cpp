@@ -3,15 +3,19 @@
 
 #include "Weapon.h"
 
+#include "Casing.h"
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
 #include "BerkushsPlayground/Character/StrikeCharacter.h"
 #include "Net/UnrealNetwork.h"
+#include "Animation/AnimationAsset.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 AWeapon::AWeapon()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	bReplicates = true;
+	bReplicates = true; //Eger bu false olsaydi, weapon sinifimiz gene her makinede calisacakti ama her clientin uzerinde hasauthoritysi olacakti, biz mermi mekanigi sadece serverde calissin istiyoruz o yuzden replike ediyoruz bunu
 
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	//WeaponMesh->SetupAttachment(RootComponent);
@@ -52,7 +56,6 @@ void AWeapon::BeginPlay()
 void AWeapon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 #pragma region NetworkEvents
@@ -114,3 +117,28 @@ void AWeapon::ShowPickupWidget(bool bShowWidget)
 	}
 }
 #pragma endregion NetworkEvents
+
+void AWeapon::Fire(const FVector& HitTarget) //Networke alabilirim bunu
+{
+	if (FireAnimation)
+	{
+		WeaponMesh->PlayAnimation(FireAnimation, false);
+	}
+	if (CasingClass)
+	{
+		const USkeletalMeshSocket* AmmoEjectSocket = WeaponMesh->GetSocketByName(FName("AmmoEject"));
+		if (AmmoEjectSocket)
+		{
+			FTransform SocketTransform = AmmoEjectSocket->GetSocketTransform(WeaponMesh);
+			
+			UWorld* World = GetWorld();
+			if (World)
+			{
+				World->SpawnActor<ACasing>(
+					CasingClass,
+					SocketTransform.GetLocation(),
+					SocketTransform.GetRotation().Rotator());
+			}
+		}
+	}
+}

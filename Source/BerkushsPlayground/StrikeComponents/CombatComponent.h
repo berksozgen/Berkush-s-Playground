@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CombatComponent.generated.h"
 
+#define TRACE_LENGHT 80'000.f
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BERKUSHSPLAYGROUND_API UCombatComponent : public UActorComponent
@@ -30,6 +31,14 @@ protected:
 	UFUNCTION()
 	void OnRep_EquippedWeapon();
 
+	void FireButtonPressed(bool bPressed);
+	UFUNCTION(Server, Reliable)
+	void Server_Fire(const FVector_NetQuantize& TraceHitTarget); //Bu da 20 Bit'e indiriyor FVectoru :D
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_Fire(const FVector_NetQuantize& TraceHitTarget);
+
+	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
+
 private:
 	class AStrikeCharacter* Character;
 
@@ -43,6 +52,7 @@ private:
 	UPROPERTY(EditAnywhere)
 	float AimWalkSpeed;
 
+	bool bFireButtonPressed;
 public:	
 	
 };
