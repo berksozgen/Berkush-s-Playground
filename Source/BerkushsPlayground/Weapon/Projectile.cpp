@@ -54,29 +54,14 @@ void AProjectile::BeginPlay()
 void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	FVector NormalImpulse, const FHitResult& Hit)
 {
-	AStrikeCharacter* StrikeCharacter = Cast<AStrikeCharacter>(OtherActor);
-	if (StrikeCharacter)
-	{
-		StrikeCharacter->Multicast_HitReaction();
-	}
-	
 	Destroy();
 }
 
-void AProjectile::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
+void AProjectile::Tick(float DeltaTime) { Super::Tick(DeltaTime); }
 
 void AProjectile::Destroyed() //Bu aktor replike oldugu icin, destroy fdonksiyonu kendiliginden  multicast, override ederek particle system icin ayri RPC acmaya gerek duymuyoruz
 {
-	if (ImpactParticles)
-	{
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, GetActorTransform());
-	}
-	if (ImpactSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, GetActorLocation());
-	}
+	if (ImpactParticles) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, GetActorTransform());
+	if (ImpactSound) UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, GetActorLocation());
 	Super::Destroyed();
 }

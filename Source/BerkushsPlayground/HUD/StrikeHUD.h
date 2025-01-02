@@ -30,8 +30,13 @@ class BERKUSHSPLAYGROUND_API AStrikeHUD : public AHUD
 public:
 	virtual void DrawHUD() override;
 
-protected:
+	UPROPERTY(EditAnywhere, Category = "Player Stats")
+	TSubclassOf<class UUserWidget> CharacterOverlayClass;
+	class UCharacterOverlay* CharacterOverlay;
 
+protected:
+	virtual void BeginPlay() override;
+	void AddCharacterOverlay();
 private:
 	FHudPackage HUDPackage;
 

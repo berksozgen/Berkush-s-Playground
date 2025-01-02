@@ -59,17 +59,17 @@ public:
 	virtual void PostInitializeComponents() override;
 
 	void PlayFireMontage(bool bAiming);
-	UFUNCTION(NetMulticast, Unreliable)
-	void Multicast_HitReaction();
-
+	void PlayElimMontage();
+	
 	virtual void OnRep_ReplicatedMovement() override;
+
+	UFUNCTION(NetMulticast, Reliable) //Bunu multicast yapacagimiza OnRep'te can kontrolunu yapsak ne olurdu ki
+	void Elim();
 	
 	/** Called for movement input */
 	void EnhancedMove(const FInputActionValue& Value);
-
 	/** Called for looking input */
 	void EnhancedLook(const FInputActionValue& Value);
-
 	//
 	void EquipPressed(const FInputActionValue& Value);
 	//
@@ -80,7 +80,7 @@ public:
 	//
 	void FirePressed(const FInputActionValue& Value);
 	void FireReleased(const FInputActionValue& Value);
-
+	
 protected:
 	virtual void BeginPlay() override;
 
@@ -96,6 +96,11 @@ protected:
 	virtual void Jump() override;
 	
 	void PlayHitReactMontage();
+	
+	UFUNCTION()
+	void ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
+
+	void UpdateHUDHealth();
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
@@ -129,9 +134,11 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	class UAnimMontage* FireWeaponMontage;
-
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* HitReactMontage;
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* ElimMontage;
+	
 	void HideCameraIfCharacterClose(); //Bu isime cozum bul
 	UPROPERTY(EditAnywhere)
 	float CameraThreshold = 200.f;
@@ -144,6 +151,18 @@ private:
 	float TimeSinceLastMovementReplication;
 
 	float CalculateSpeed();
+
+	//Player Health //Cani player state yerine buraya ekleme nedenimiz, PlayerState'den daha fazla net update aliyor olusumuz
+	UPROPERTY(EditAnywhere, Category = "Player Stats")
+	float MaxHealth = 100.f;
+	UPROPERTY(ReplicatedUsing = OnRep_Health, VisibleAnywhere, Category = "Player Stats")
+	float Health = 100.f;
+	UFUNCTION()
+	void OnRep_Health();
+
+	bool bElimmed = false;
+
+	class AStrikePlayerController* StrikePlayerController;
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped();
@@ -154,6 +173,7 @@ public:
 	FORCEINLINE ETurningInPlace GetTurningInPlace() const { return TurningInPlace; }
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
+	FORCEINLINE bool IsElimmed() const { return bElimmed; }
 	
 	FVector GetHitTarget() const;
 };

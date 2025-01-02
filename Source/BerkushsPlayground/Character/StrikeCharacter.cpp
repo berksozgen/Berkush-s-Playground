@@ -16,6 +16,8 @@
 #include "Net/UnrealNetwork.h"
 #include "StrikeAnimInstance.h"
 #include "BerkushsPlayground/BerkushsPlayground.h"
+#include "BerkushsPlayground/PlayerController/StrikePlayerController.h"
+#include "BerkushsPlayground/GameMode/StrikeGameMode.h"
 
 #pragma region UnrealDefaultFunc
 AStrikeCharacter::AStrikeCharacter()
@@ -63,7 +65,8 @@ void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AStrikeCharacter, OverlappingWeapon, COND_OwnerOnly);
-	//DOREPLIFETIME(AStrikeCharacter, OverlappingWeapon); //Boyle yapinca biri silah ustunde durunca herkeste gozulkuyor
+	//DOREPLIFETIME(AStrikeCharacter, OverlappingWeapon); //Boyle yapinca biri silah ustunde durunca herkeste gozukuyor
+	DOREPLIFETIME(AStrikeCharacter, Health);
 }
 
 void AStrikeCharacter::PostInitializeComponents()
@@ -76,6 +79,19 @@ void AStrikeCharacter::PostInitializeComponents()
 void AStrikeCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	UpdateHUDHealth();
+
+	if (HasAuthority())
+	{
+		OnTakeAnyDamage.AddDynamic(this, &AStrikeCharacter::ReceiveDamage);
+	}
+}
+
+void AStrikeCharacter::UpdateHUDHealth() //Bunu owner onlye alayim bi ara
+{
+	StrikePlayerController = StrikePlayerController == nullptr ? Cast<AStrikePlayerController>(GetController()) : StrikePlayerController;
+	if (StrikePlayerController) StrikePlayerController->SetHUDHealth(Health, MaxHealth);
 }
 
 void AStrikeCharacter::Tick(float DeltaTime)
@@ -110,6 +126,12 @@ void AStrikeCharacter::PlayFireMontage(bool bAiming)
 		SectionName = bAiming ? FName("RifleAim") : FName("RifleHip");
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}
+}
+
+void AStrikeCharacter::PlayElimMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && ElimMontage) AnimInstance->Montage_Play(ElimMontage);
 }
 
 void AStrikeCharacter::PlayHitReactMontage()
@@ -311,6 +333,37 @@ void AStrikeCharacter::LookUp(float Value) { AddControllerPitchInput(-Value); }
 #pragma region NetworkEvents
 void AStrikeCharacter::Server_EquipButtonPressed_Implementation() { if (Combat) Combat->EquipWeapon(OverlappingWeapon); }
 
+void AStrikeCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
+	class AController* InstigatorController, AActor* DamageCauser) /*Network event mi emin degilim*/
+{
+	Health = FMath::Clamp(Health-Damage, 0.0f, MaxHealth);
+	UpdateHUDHealth(); //niye bunu ikisinde de cagiriyoruz, tamam repler serverde calismyor da owner degilse anlami ne
+	PlayHitReactMontage();
+
+	if (Health == 0.f)
+	{
+		AStrikeGameMode* StrikeGameMode = GetWorld()->GetAuthGameMode<AStrikeGameMode>();
+		if (StrikeGameMode)
+		{
+			StrikePlayerController = StrikePlayerController == nullptr ? Cast<AStrikePlayerController>(Controller) : StrikePlayerController;
+			AStrikePlayerController* AttackerController = Cast<AStrikePlayerController>(InstigatorController);
+			StrikeGameMode->PlayerEliminated(this, StrikePlayerController, AttackerController); //nullcheck atmama nedenimiz gamemode da atcaz
+		}
+	}
+}
+
+void AStrikeCharacter::OnRep_Health()
+{
+	UpdateHUDHealth();
+	PlayHitReactMontage();
+}
+
+void AStrikeCharacter::Elim_Implementation()
+{
+	bElimmed = true;
+	PlayElimMontage();
+}
+
 void AStrikeCharacter::SetOverlappingWeapon(AWeapon* Weapon) //Bu kod, Weapon'un Collision Handle'lamasi yuzunden sadece serverde calisiyor
 {
 	if (OverlappingWeapon)
@@ -339,8 +392,6 @@ AWeapon* AStrikeCharacter::GetEquippedWeapon() //Anim instance icin aslinda
 	if (Combat == nullptr) return nullptr;
 	return Combat->EquippedWeapon;
 }
-
-void AStrikeCharacter::Multicast_HitReaction_Implementation() { PlayHitReactMontage(); }
 
 void AStrikeCharacter::OnRep_ReplicatedMovement() //Bu hem unreal default hem replicated bilemedim
 {
