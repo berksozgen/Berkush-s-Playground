@@ -36,6 +36,7 @@ void UStrikeAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	bIsCrouched = StrikeCharacter->bIsCrouched;
 	bAiming = StrikeCharacter->IsAiming();
 	TurningInPlace = StrikeCharacter->GetTurningInPlace();
+	bRotateRootBone = StrikeCharacter->ShouldRotateRootBone();
 
 	//Offset Yaw for Strafing
 	FRotator AimRotaition = StrikeCharacter->GetBaseAimRotation(); //Bu global rotationu veriyor
@@ -62,5 +63,16 @@ void UStrikeAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		StrikeCharacter->GetMesh()->TransformToBoneSpace(FName("hand_r"), LeftHandTransform.GetLocation(), FRotator::ZeroRotator, OutPosition, OutRotation);
 		LeftHandTransform.SetLocation(OutPosition);
 		LeftHandTransform.SetRotation(FQuat(OutRotation));
+
+		if (StrikeCharacter->IsLocallyControlled()) /*Su silahin baktigi yonu, merminin gidecegi yone cevirmeyi sadece oynayanda yapacagiz, replike olmasina gerek yok (aslinda var da bandwith)*/
+		{
+			bLocallyControlled = true; //Bunu tickte setlemek ne kadar mantikli?
+			FTransform RightHandTransform = StrikeCharacter->GetMesh()->GetSocketTransform(FName("Hand_R")/*btw bu kisim Case sensitive degilmis*/, ERelativeTransformSpace::RTS_World);
+			FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(RightHandTransform.GetLocation(),
+				RightHandTransform.GetLocation() + /*Ikinci kisma da elin lokasyonunu ekleyip cikarma nedenimiz skeletal meshde X eksini govdeye bakiyor, yoksa Get hit target yeterli*/
+				(RightHandTransform.GetLocation() - StrikeCharacter->GetHitTarget()));
+
+			RightHandRotation = FMath::RInterpTo(RightHandRotation, LookAtRotation, DeltaTime, 30.f);
+		}
 	}
 }

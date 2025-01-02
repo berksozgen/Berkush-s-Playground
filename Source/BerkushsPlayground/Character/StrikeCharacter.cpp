@@ -15,7 +15,9 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "StrikeAnimInstance.h"
+#include "BerkushsPlayground/BerkushsPlayground.h"
 
+#pragma region UnrealDefaultFunc
 AStrikeCharacter::AStrikeCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -50,6 +52,10 @@ AStrikeCharacter::AStrikeCharacter()
 	//Eleman shooter game icin bu degerler iyi dedi bakalim artik orjinali 100 e 3 mu neydi btw project settingsten serverin tickini arttircam
 	NetUpdateFrequency = 66.f;
 	MinNetUpdateFrequency = 33.f;
+	//Line trace atmak icin
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	//Projectile Capsulu degil meshi kullansin diye
+	GetMesh()->SetCollisionObjectType(ECC_SkeletalMesh);
 }
 
 void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -67,6 +73,31 @@ void AStrikeCharacter::PostInitializeComponents()
 	if(Combat) Combat->Character = this;
 }
 
+void AStrikeCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
+void AStrikeCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (GetLocalRole() > ENetRole::ROLE_SimulatedProxy && IsLocallyControlled()) //Enum oldugu icin yapabiliyorz, none, sim, autonumus, authority diye gidiyo
+	{
+		AimOffset(DeltaTime);
+	}
+	else
+	{
+		TimeSinceLastMovementReplication += DeltaTime;
+		if (TimeSinceLastMovementReplication > .25f) OnRep_ReplicatedMovement();
+		CalculateAO_Pitch();
+	}
+
+	HideCameraIfCharacterClose();
+}
+#pragma endregion UnrealDefaultFunc
+
+#pragma region Animations
 void AStrikeCharacter::PlayFireMontage(bool bAiming)
 {
 	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
@@ -81,29 +112,52 @@ void AStrikeCharacter::PlayFireMontage(bool bAiming)
 	}
 }
 
-void AStrikeCharacter::BeginPlay()
+void AStrikeCharacter::PlayHitReactMontage()
 {
-	Super::BeginPlay();
+	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return; //Silahimiz yokken garip duruyor
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && HitReactMontage)
+	{
+		AnimInstance->Montage_Play(HitReactMontage);
+		FName SectionName("FromFront");
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
 }
+#pragma endregion Animations
 
-void AStrikeCharacter::Tick(float DeltaTime)
+#pragma region JustOwner
+void AStrikeCharacter::HideCameraIfCharacterClose() //Buraya hafif refactor gerekecek, if blogu yerine lokal boolda saklayim
 {
-	Super::Tick(DeltaTime);
-
-	AimOffset(DeltaTime);
+	if (!IsLocallyControlled()) return;
+	if ((FollowCamera->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
+	{
+		GetMesh()->SetVisibility(false);
+		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		{
+			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+		}
+	}
+	else
+	{
+		GetMesh()->SetVisibility(true);
+		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		{
+			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+		}
+	}
 }
 
 void AStrikeCharacter::AimOffset(float DeltaTime)
 {
 	if(Combat && Combat->EquippedWeapon == nullptr) return;
 	
-	FVector Velocity = GetVelocity();
-	Velocity.Z = 0.f;
-	float Speed = Velocity.Size();
+	float Speed = CalculateSpeed();
 	bool bIsInAir = GetCharacterMovement()->IsFalling();
 
-	if(Speed == 0.f && !bIsInAir) //standing still, not jumping
+	if (Speed == 0.f && !bIsInAir) //standing still, not jumping
 	{
+		bRotateRootBone = true;
 		FRotator CurrentAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
 		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentAimRotation, StartingAimRotation); //sonucu -1 ile carpmak yerine ters cevirdim hehe
 		AO_Yaw = DeltaAimRotation.Yaw;
@@ -114,14 +168,20 @@ void AStrikeCharacter::AimOffset(float DeltaTime)
 		bUseControllerRotationYaw = true;
 		TurnInPlace(DeltaTime);
 	}
-	if(Speed > 0.f || bIsInAir) //running or jumping
+	if (Speed > 0.f || bIsInAir) //running or jumping
 	{
+		bRotateRootBone = false;
 		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
 		AO_Yaw = 0.f;
 		bUseControllerRotationYaw = true;
 		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 	}
+	CalculateAO_Pitch();
+}
+#pragma endregion JustOwner
 
+void AStrikeCharacter::CalculateAO_Pitch()
+{
 	AO_Pitch = GetBaseAimRotation().Pitch; //Serverde rotasyon 0 360 arasinda gidiyor, Unrealin bok yemesi, //5 bayta dusuruyor
 	if(AO_Pitch > 90.f && !IsLocallyControlled()) //Niye IsLocally conterolled diyip -180.f cikarmadik onu anlamadim; bir ara test ederim
 	{
@@ -148,12 +208,17 @@ void AStrikeCharacter::TurnInPlace(float DeltaTime)
 		}
 	}
 }
+float AStrikeCharacter::CalculateSpeed()
+{
+	FVector Velocity = GetVelocity();
+	Velocity.Z = 0.f;
+	return Velocity.Size();
+}
 
 #pragma region Input
 void AStrikeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	//Super::SetupPlayerInputComponent(PlayerInputComponent);
-	
 	// Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{
@@ -162,30 +227,22 @@ void AStrikeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 			Subsystem->AddMappingContext(StrikeMappingContext, 0);
 		}
 	}
-	
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
-		
 		// Jumping
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AStrikeCharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-
 		// Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AStrikeCharacter::EnhancedMove);
-
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AStrikeCharacter::EnhancedLook);
-
 		// Equipping
 		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Started, this, &AStrikeCharacter::EquipPressed);
-		
 		// Crouching
 		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AStrikeCharacter::CrouchPressed);
-		
 		// Aiming
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &AStrikeCharacter::AimPressed);
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &AStrikeCharacter::AimReleased);
-
 		// Firing
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &AStrikeCharacter::FirePressed);
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &AStrikeCharacter::FireReleased);
@@ -197,24 +254,18 @@ void AStrikeCharacter::EnhancedMove(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
-	
 	MoveForward(MovementVector.Y);
 	MoveRight(MovementVector.X);
 }
 
 void AStrikeCharacter::EnhancedLook(const FInputActionValue& Value)
 {
-	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 	Turn(LookAxisVector.X);
 	LookUp(LookAxisVector.Y);
 }
 
-void AStrikeCharacter::Jump()
-{
-	if(bIsCrouched) UnCrouch();
-	else Super::Jump();
-}
+void AStrikeCharacter::Jump() { (bIsCrouched) ? UnCrouch() : Super::Jump(); }
 
 void AStrikeCharacter::EquipPressed(const FInputActionValue& Value) //Parametrelere gerek var mi bilmiyorum, Enhanced input mal ama biraz
 {
@@ -225,31 +276,13 @@ void AStrikeCharacter::EquipPressed(const FInputActionValue& Value) //Parametrel
 	}
 }
 
-void AStrikeCharacter::CrouchPressed(const FInputActionValue& Value)
-{
-	if (bIsCrouched) UnCrouch();
-	else Crouch();
-}
+void AStrikeCharacter::CrouchPressed(const FInputActionValue& Value) { (bIsCrouched) ? UnCrouch() : Crouch(); }
 
-void AStrikeCharacter::AimPressed(const FInputActionValue& Value)
-{
-	if (Combat) Combat->SetAiming(true);
-}
+void AStrikeCharacter::AimPressed(const FInputActionValue& Value) { if (Combat) Combat->SetAiming(true); }
+void AStrikeCharacter::AimReleased(const FInputActionValue& Value) { if (Combat) Combat->SetAiming(false); }
 
-void AStrikeCharacter::AimReleased(const FInputActionValue& Value)
-{
-	if (Combat) Combat->SetAiming(false);
-}
-
-void AStrikeCharacter::FirePressed(const FInputActionValue& Value)
-{
-	if (Combat) Combat->FireButtonPressed(true);
-}
-
-void AStrikeCharacter::FireReleased(const FInputActionValue& Value)
-{
-	if (Combat) Combat->FireButtonPressed(false);
-}
+void AStrikeCharacter::FirePressed(const FInputActionValue& Value) { if (Combat) Combat->FireButtonPressed(true); }
+void AStrikeCharacter::FireReleased(const FInputActionValue& Value) { if (Combat) Combat->FireButtonPressed(false); }
 
 void AStrikeCharacter::MoveForward(float Value)
 {
@@ -271,22 +304,12 @@ void AStrikeCharacter::MoveRight(float Value)
 	}
 }
 
-void AStrikeCharacter::Turn(float Value)
-{
-	AddControllerYawInput(Value);
-}
-
-void AStrikeCharacter::LookUp(float Value)
-{
-	AddControllerPitchInput(-Value);
-}
+void AStrikeCharacter::Turn(float Value) { AddControllerYawInput(Value); }
+void AStrikeCharacter::LookUp(float Value) { AddControllerPitchInput(-Value); }
 #pragma endregion Input
 
-#pragma region Replication
-void AStrikeCharacter::Server_EquipButtonPressed_Implementation()
-{
-	if (Combat) Combat->EquipWeapon(OverlappingWeapon);
-}
+#pragma region NetworkEvents
+void AStrikeCharacter::Server_EquipButtonPressed_Implementation() { if (Combat) Combat->EquipWeapon(OverlappingWeapon); }
 
 void AStrikeCharacter::SetOverlappingWeapon(AWeapon* Weapon) //Bu kod, Weapon'un Collision Handle'lamasi yuzunden sadece serverde calisiyor
 {
@@ -297,10 +320,7 @@ void AStrikeCharacter::SetOverlappingWeapon(AWeapon* Weapon) //Bu kod, Weapon'un
 	OverlappingWeapon = Weapon;
 	if (IsLocallyControlled()) //Yani bu if check niye gerekli bilemedim //Bunu acikliyor galiba ama anlamadim 46. ders sonu
 	{
-		if (OverlappingWeapon)
-		{
-			OverlappingWeapon->ShowPickupWidget(true);
-		}
+		if (OverlappingWeapon) OverlappingWeapon->ShowPickupWidget(true);
 	}
 }
 
@@ -310,19 +330,54 @@ void AStrikeCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon) //RepNotify'
 	if (LastWeapon) LastWeapon->ShowPickupWidget(false);
 }
 
-bool AStrikeCharacter::IsWeaponEquipped() //Yari replication ile ilgili sayilir bu aslinda, tum Clientlerde AnimInstance guncellemeleri ile ilgili
-{
-	return Combat && Combat->EquippedWeapon;
-}
+bool AStrikeCharacter::IsWeaponEquipped() { return Combat && Combat->EquippedWeapon; }//Yari replication ile ilgili sayilir bu aslinda, tum Clientlerde AnimInstance guncellemeleri ile ilgili
 
-bool AStrikeCharacter::IsAiming() //Yari replication ile ilgili sayilir bu aslinda, tum Clientlerde AnimInstance guncellemeleri ile ilgili
-{
-	return Combat && Combat->bAiming;
-}
+bool AStrikeCharacter::IsAiming() { return Combat && Combat->bAiming; } //Yari replication ile ilgili sayilir bu aslinda, tum Clientlerde AnimInstance guncellemeleri ile ilgili
 
 AWeapon* AStrikeCharacter::GetEquippedWeapon() //Anim instance icin aslinda
 {
 	if (Combat == nullptr) return nullptr;
 	return Combat->EquippedWeapon;
 }
-#pragma endregion Replication
+
+void AStrikeCharacter::Multicast_HitReaction_Implementation() { PlayHitReactMontage(); }
+
+void AStrikeCharacter::OnRep_ReplicatedMovement() //Bu hem unreal default hem replicated bilemedim
+{
+	Super::OnRep_ReplicatedMovement();
+	SimProxiesTurn();
+	TimeSinceLastMovementReplication = 0.f;
+}
+
+void AStrikeCharacter::SimProxiesTurn()
+{
+	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
+	
+	bRotateRootBone = false;
+	float Speed = CalculateSpeed();
+	if (Speed > 0.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+		return;
+	}
+	
+	ProxyRotationLastFrame = ProxyRotation;
+	ProxyRotation = GetActorRotation();
+	ProxyYaw = UKismetMathLibrary::NormalizedDeltaRotator(ProxyRotation, ProxyRotationLastFrame).Yaw;
+
+	if (FMath::Abs(ProxyYaw) > TurnThreshold)
+	{
+		if (ProxyYaw > TurnThreshold) TurningInPlace = ETurningInPlace::ETIP_Right;
+		else if (ProxyYaw < -TurnThreshold) TurningInPlace = ETurningInPlace::ETIP_Left;
+		else TurningInPlace = ETurningInPlace::ETIP_NotTurning; //Bunu yukardaki ifin elsesi yapmamiz gerekmiyor mu ak
+		return; //bunun yerine alttaki satiri else icine alamaz miydik:???
+	}
+	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+}
+#pragma endregion NetworkEvents
+
+FVector AStrikeCharacter::GetHitTarget() const
+{
+	if (Combat == nullptr) return FVector();
+	return Combat->HitTarget;
+}

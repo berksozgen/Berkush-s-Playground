@@ -9,12 +9,15 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "BerkushsPlayground/PlayerController/StrikePlayerController.h"
+#include "Camera/CameraComponent.h"
+#include "TimerManager.h"
 //Debug Helpers
 #include "DrawDebugHelpers.h"
 
 UCombatComponent::UCombatComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
 
 	BaseWalkSpeed = 600.f;
 	AimWalkSpeed = 350.f;
@@ -35,64 +38,103 @@ void UCombatComponent::BeginPlay()
 	if (Character)
 	{
 		Character->GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
+
+		if (Character->GetFollowCamera())
+		{
+			DefaultFOV = Character->GetFollowCamera()->FieldOfView;
+			CurrentFOV = DefaultFOV;
+		}
 	}
 }
 
-void UCombatComponent::SetAiming(bool bIsAiming)
+void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	bAiming = bIsAiming; //Client serverden geri donus beklemeden animasyonu guncellesin diye
-	Server_SetAiming(bIsAiming);
-	if (Character)
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	
+	if (Character && Character->IsLocallyControlled())
 	{
-		Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
-	}
-	/*
-	if (!Character->HasAuthority())
-	{
-		Server_SetAiming(bIsAiming); //Bu wrape gerek var mi bilmiyorum, sonucta server kendinde de RPC cagirsa giren cikan olmayacak
-	}//Adam benim dedigimi dedi ak sonradan, neyse comment atayim da sonra kafam karisirsa bakarim
-	*/
-}
-
-void UCombatComponent::Server_SetAiming_Implementation(bool bIsAiming) //bAiming Replicated diye multicast atmaya gerek yok, Replicated degiskenler Server'dan tum Clientlere olacak sekilde esleniyor
-{
-	bAiming = bIsAiming;
-
-	if (Character)
-	{
-		Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
-	}
-}
-
-void UCombatComponent::OnRep_EquippedWeapon()
-{
-	if (EquippedWeapon && Character)
-	{
-		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
-		Character->bUseControllerRotationYaw = true;
-	}
-}
-
-void UCombatComponent::FireButtonPressed(bool bPressed)
-{
-	bFireButtonPressed = bPressed;
-
-	if (bFireButtonPressed)
-	{
-		FHitResult HitResult; /*Bu zaten net optimized donuyormus, Unreal :D*/
+		FHitResult HitResult;
 		TraceUnderCrosshairs(HitResult);
-		Server_Fire(HitResult.ImpactPoint);
+		HitTarget=HitResult.ImpactPoint;
+		
+		SetHUDCrosshairs(DeltaTime); //Bunlardaki Character == null Checkini kaldirmaliyim bi ara
+		InterpFOV(DeltaTime); //Aha bundan da
 	}
+}
+
+#pragma region OwnerOnly
+void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
+{
+	if (Character == nullptr || Character->Controller == nullptr) return;
+
+	Controller = Controller == nullptr ? Cast<AStrikePlayerController>(Character->Controller) : Controller;
+	if (Controller)
+	{
+		HUD = HUD == nullptr ? Cast<AStrikeHUD>(Controller->GetHUD()) : HUD;
+		if (HUD)
+		{
+			if (EquippedWeapon)
+			{
+				HUDPackage.CrosshairCenter = EquippedWeapon->CrosshairsCenter;
+				HUDPackage.CrosshairsLeft = EquippedWeapon->CrosshairsLeft;
+				HUDPackage.CrosshairsRight = EquippedWeapon->CrosshairsRight;
+				HUDPackage.CrosshairsTop = EquippedWeapon->CrosshairsTop;
+				HUDPackage.CrosshairsBottom = EquippedWeapon->CrosshairsBottom;
+			}
+			else
+			{
+				HUDPackage.CrosshairCenter = nullptr;
+				HUDPackage.CrosshairsLeft = nullptr;
+				HUDPackage.CrosshairsRight = nullptr;
+				HUDPackage.CrosshairsTop = nullptr;
+				HUDPackage.CrosshairsBottom = nullptr;
+			}
+			//Calculate Crosshair Spread
+
+			//Map our Speed(between 0-600 i quess) to 0-1 because we scale it in hud
+			FVector2D WalkSpeedRange(0.f, Character->GetCharacterMovement()->MaxWalkSpeed);
+			FVector2D VelocityMultiplierRange(0.f,1.f);
+			FVector Velocity = Character->GetVelocity();
+			Velocity.Z = 0;
+			CrosshairVelocityFactor = FMath::GetMappedRangeValueClamped(WalkSpeedRange,VelocityMultiplierRange, Velocity.Size()); //Burayi degistircem, Character->GetVelocity().Size() / Character->GetCharacterMovement()->MaxWalkSpeed ile
+
+			if (Character->GetCharacterMovement()->IsFalling()) //Burda da Z yi sifirlamazsam bunu heaba katmis oluyorum zaten, ciddili single line a indirebilirim bunu
+			{
+				CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, 2.25f, DeltaTime, 2.25f);
+			}
+			else CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, 0.f, DeltaTime, 30.f);
+
+			CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, bAiming ? -.58f : 0.f, DeltaTime, 30.f);
+
+			CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor, 0.f, DeltaTime, 40.f);
+			
+			HUDPackage.CrosshairSpread =
+				.5f +
+				CrosshairVelocityFactor +
+					CrosshairInAirFactor +
+						CrosshairAimFactor +
+							CrosshairShootingFactor; 
+			
+			HUD->SetHUDPackage(HUDPackage);
+		}
+	}
+}
+
+void UCombatComponent::InterpFOV(float DeltaTime)
+{
+	if (EquippedWeapon == nullptr) return;
+
+	if (bAiming) CurrentFOV = FMath::FInterpTo(CurrentFOV, EquippedWeapon->GetZoomedFOV(), DeltaTime, EquippedWeapon->GetZoomInterpSpeed());
+	else CurrentFOV = FMath::FInterpTo(CurrentFOV, DefaultFOV, DeltaTime, ZoomInterpSpeed);
+	
+	if (Character && Character->GetFollowCamera()) Character->GetFollowCamera()->SetFieldOfView(CurrentFOV);
 }
 
 void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 {
 	FVector2D ViewportSize;
-	if (GEngine && GEngine->GameViewport)
-	{
-		GEngine->GameViewport->GetViewportSize(ViewportSize);
-	}
-
+	if (GEngine && GEngine->GameViewport) GEngine->GameViewport->GetViewportSize(ViewportSize);
+	
 	FVector2D CrosshairLocation(ViewportSize.X / 2.f, ViewportSize.Y / 2.f); //They are in ScreenSpace, We need to Convert them WorldSpace
 	FVector CrosshairWorldPosition;
 	FVector CrosshairWorldDirection; //1 Birim uzerinden veriyor
@@ -105,6 +147,11 @@ void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 	if (bScreenToWorld)
 	{
 		FVector Start = CrosshairWorldPosition;
+		if (Character) //Buna da gerek var mi bilmiyorum, ifte control ediliyor sonucta
+		{
+			float DistanceToCharacter = (Character->GetActorLocation() - Start).Size();
+			Start += CrosshairWorldDirection * (DistanceToCharacter + 100.f);
+		}
 		FVector End = Start + CrosshairWorldDirection * TRACE_LENGHT;
 
 		GetWorld()->LineTraceSingleByChannel(
@@ -113,15 +160,73 @@ void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 			End,
 			ECollisionChannel::ECC_Visibility);
 
-		//if (!TraceHitResult.bBlockingHit) TraceHitResult.ImpactPoint = End; //Adam havaya sikarsa diye
+		if (TraceHitResult.GetActor() && TraceHitResult.GetActor()->Implements<UInteractWithCrosshairsInterface>())
+		{
+			HUDPackage.CrosshairsColor = FLinearColor::Red;
+		}
+		else
+		{
+			HUDPackage.CrosshairsColor = FLinearColor::White;
+		}
+		if (!TraceHitResult.bBlockingHit) TraceHitResult.ImpactPoint = End; //Adam havaya sikarsa diye
+	}
+}
+#pragma endregion OwnerOnly
+
+void UCombatComponent::SetAiming(bool bIsAiming)
+{
+	bAiming = bIsAiming; //Client serverden geri donus beklemeden animasyonu guncellesin diye
+	Server_SetAiming(bIsAiming);
+	if (Character) Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
+	/*
+	if (!Character->HasAuthority())
+	{
+		Server_SetAiming(bIsAiming); //Bu wrape gerek var mi bilmiyorum, sonucta server kendinde de RPC cagirsa giren cikan olmayacak
+	}//Adam benim dedigimi dedi ak sonradan, neyse comment atayim da sonra kafam karisirsa bakarim
+	*/
+}
+void UCombatComponent::Server_SetAiming_Implementation(bool bIsAiming) //bAiming Replicated diye multicast atmaya gerek yok, Replicated degiskenler Server'dan tum Clientlere olacak sekilde esleniyor
+{
+	bAiming = bIsAiming;
+
+	if (Character) Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
+}
+
+#pragma region Firing
+void UCombatComponent::Fire()
+{
+	if (bCanFire)
+	{
+		bCanFire = false;
+		Server_Fire(HitTarget); /*BTW FHitResult zaten net optimized variable donduruyormus (20bit lokasyoan falan), Unreal :D*/
+		if (EquippedWeapon) //Silahimiz yokken crosshairmiz yok ki bu adam bu checki niye yapti
+		{
+			CrosshairShootingFactor = .75f;
+		}
+		StartFireTimer();
 	}
 }
 
-void UCombatComponent::Server_Fire_Implementation(const FVector_NetQuantize& TraceHitTarget)
+void UCombatComponent::FireButtonPressed(bool bPressed) { if ((bFireButtonPressed = bPressed)) Fire(); }
+
+void UCombatComponent::StartFireTimer()
 {
-	Multicast_Fire(TraceHitTarget);
+	if (EquippedWeapon == nullptr || Character == nullptr) return;
+	Character->GetWorldTimerManager().SetTimer(
+		FireTimer,
+		this,
+		&UCombatComponent::FireTimerFinished,
+		EquippedWeapon->FireDelay);
 }
 
+void UCombatComponent::FireTimerFinished()
+{
+	bCanFire = true;
+	if (EquippedWeapon == nullptr) return;
+	if (bFireButtonPressed && EquippedWeapon->bAutomatic) Fire();
+}
+
+void UCombatComponent::Server_Fire_Implementation(const FVector_NetQuantize& TraceHitTarget) { Multicast_Fire(TraceHitTarget); }
 void UCombatComponent::Multicast_Fire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
 	if (EquippedWeapon == nullptr) return;
@@ -132,11 +237,7 @@ void UCombatComponent::Multicast_Fire_Implementation(const FVector_NetQuantize& 
 		EquippedWeapon->Fire(TraceHitTarget);
 	}
 }
-
-void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-}
+#pragma endregion Firing
 
 void UCombatComponent::EquipWeapon(class AWeapon* WeaponToEquip)
 {
@@ -145,11 +246,17 @@ void UCombatComponent::EquipWeapon(class AWeapon* WeaponToEquip)
 	EquippedWeapon = WeaponToEquip;
 	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
 	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("RightHandSocket"));
-	if (HandSocket)
-	{
-		HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
-	}
+	if (HandSocket) HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
 	EquippedWeapon->SetOwner(Character);
 	Character->GetCharacterMovement()->bOrientRotationToMovement = false;//1 Bunlari burada birakma nedenizim repnotifylar sadece clientlerde calisiyor, serverde calismiyor
 	Character->bUseControllerRotationYaw = true;//1
+}
+
+void UCombatComponent::OnRep_EquippedWeapon()
+{
+	if (EquippedWeapon && Character)
+	{
+		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
+		Character->bUseControllerRotationYaw = true;
+	}
 }

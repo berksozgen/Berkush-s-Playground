@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "BerkushsPlayground/HUD/StrikeHUD.h"
 #include "Components/ActorComponent.h"
 #include "CombatComponent.generated.h"
 
@@ -31,6 +32,7 @@ protected:
 	UFUNCTION()
 	void OnRep_EquippedWeapon();
 
+	void Fire();
 	void FireButtonPressed(bool bPressed);
 	UFUNCTION(Server, Reliable)
 	void Server_Fire(const FVector_NetQuantize& TraceHitTarget); //Bu da 20 Bit'e indiriyor FVectoru :D
@@ -39,8 +41,12 @@ protected:
 
 	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
 
+	void SetHUDCrosshairs(float DeltaTime);
+
 private:
 	class AStrikeCharacter* Character;
+	class AStrikePlayerController* Controller;
+	class AStrikeHUD* HUD;
 
 	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon) //Anim Instance buna erisebilsin diye, Her Client anim instancelari kendi uzerinde cagiriyor.
 	class AWeapon* EquippedWeapon;
@@ -53,6 +59,42 @@ private:
 	float AimWalkSpeed;
 
 	bool bFireButtonPressed;
+
+	/*
+	 * HUD and Crosshairs
+	 */
+	float CrosshairVelocityFactor;
+	float CrosshairInAirFactor;
+	float CrosshairAimFactor;
+	float CrosshairShootingFactor;
+
+	FHudPackage HUDPackage;
+
+	//
+	FVector HitTarget;
+
+	//
+	//Aiming And FOV
+	//
+
+	//Field of view when not aiming; set to the camera's base FOV in BeginPlay
+	float DefaultFOV;
+	float CurrentFOV;
+	UPROPERTY(EditAnywhere, Category = Combat)
+	float ZoomedFOV = 30.f;
+	UPROPERTY(EditAnywhere, Category = Combat)
+	float ZoomInterpSpeed = 20.f;
+
+	void InterpFOV(float DeltaTime);
+
+	//
+	//Automatic fire
+	//
+	FTimerHandle FireTimer;
+	bool bCanFire = true;
+	
+	void StartFireTimer();
+	void FireTimerFinished();
 public:	
 	
 };
