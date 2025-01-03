@@ -23,7 +23,7 @@
 AStrikeCharacter::AStrikeCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
-
+	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn; /*bunu sade bp ile yapti adam ama burda bana not olarak kalsin*/
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(GetMesh());
 	CameraBoom->TargetArmLength = 600.0f;
@@ -358,7 +358,26 @@ void AStrikeCharacter::OnRep_Health()
 	PlayHitReactMontage();
 }
 
-void AStrikeCharacter::Elim_Implementation()
+void AStrikeCharacter::Elim()
+{
+	Multicast_Elim();
+	GetWorldTimerManager().SetTimer(
+		ElimTimer,
+		this,
+		&AStrikeCharacter::ElimTimerFinished,
+		ElimDelay);
+}
+
+void AStrikeCharacter::ElimTimerFinished() //Timer sadece serverde acildigindan, gamemode a erismek safe
+{
+	AStrikeGameMode* StrikeGameMode = GetWorld()->GetAuthGameMode<AStrikeGameMode>();
+	if (StrikeGameMode)
+	{
+		StrikeGameMode->RequestRespawn(this, Controller/*GameMode'da controlleri check ediyoruz zaten, this girdisinin de null olacak hali yok herhal*/);
+	}
+}
+
+void AStrikeCharacter::Multicast_Elim_Implementation()
 {
 	bElimmed = true;
 	PlayElimMontage();

@@ -16,6 +16,7 @@ class BERKUSHSPLAYGROUND_API AStrikeGameMode : public AGameMode
 
 public:
 	virtual void PlayerEliminated(class AStrikeCharacter* ElimmedCharacter, class AStrikePlayerController* VictimController, AStrikePlayerController* AttackerController);
+	virtual void RequestRespawn(ACharacter* ElimmedCharacter, AController* ElimmedController);
 
 protected:
 

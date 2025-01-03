@@ -63,8 +63,9 @@ public:
 	
 	virtual void OnRep_ReplicatedMovement() override;
 
-	UFUNCTION(NetMulticast, Reliable) //Bunu multicast yapacagimiza OnRep'te can kontrolunu yapsak ne olurdu ki
 	void Elim();
+	UFUNCTION(NetMulticast, Reliable) //Bunu multicast yapacagimiza OnRep'te can kontrolunu yapsak ne olurdu ki
+	void Multicast_Elim();
 	
 	/** Called for movement input */
 	void EnhancedMove(const FInputActionValue& Value);
@@ -161,6 +162,10 @@ private:
 	void OnRep_Health();
 
 	bool bElimmed = false;
+	FTimerHandle ElimTimer;
+	UPROPERTY(EditDefaultsOnly)
+	float ElimDelay = 3.f;
+	void ElimTimerFinished();
 
 	class AStrikePlayerController* StrikePlayerController;
 public:	

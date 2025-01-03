@@ -3,9 +3,27 @@
 #include "StrikeGameMode.h"
 #include "BerkushsPlayground/Character/StrikeCharacter.h"
 #include "BerkushsPlayground/PlayerController/StrikePlayerController.h"
+#include "GameFramework/PlayerStart.h"
+#include "Kismet/GameplayStatics.h"
 
 void AStrikeGameMode::PlayerEliminated(AStrikeCharacter* ElimmedCharacter,
-	AStrikePlayerController* VictimController, AStrikePlayerController* AttackerController)
+                                       AStrikePlayerController* VictimController, AStrikePlayerController* AttackerController)
 {
 	if (ElimmedCharacter) ElimmedCharacter->Elim();
+}
+
+void AStrikeGameMode::RequestRespawn(ACharacter* ElimmedCharacter, AController* ElimmedController)
+{
+	if (ElimmedCharacter)
+	{
+		ElimmedCharacter->Reset(); //Destroy atmadan bunu cagirma nedenimiz Datalari kaybolmasin diye
+		ElimmedCharacter->Destroy();
+	}
+	if (ElimmedController)
+	{
+		TArray<AActor*> PlayerStarts;
+		UGameplayStatics::GetAllActorsOfClass(this, APlayerStart::StaticClass(), PlayerStarts); //He bunlar statik fonksiyon oldugu icin world'u weya world context objelerini istiyormus, aydinlandim ak
+		int32 Selection = FMath::RandRange(0, PlayerStarts.Num() - 1);
+		RestartPlayerAtPlayerStart(ElimmedController, PlayerStarts[Selection]); /*BTW respawn atarken oldugu yere en yakin olani/diger oyunculardan en uzak olani veya takimsal mantikla yapabilirim, gene aydinlandim*/
+	}
 }
