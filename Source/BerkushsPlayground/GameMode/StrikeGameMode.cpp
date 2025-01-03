@@ -22,7 +22,6 @@ void AStrikeGameMode::PlayerEliminated(AStrikeCharacter* ElimmedCharacter,
 	{
 		VictimPlayerState->AddToDeaths(1);
 	}
-	if (VictimController) VictimController->SetHUDKilledText(FString(TEXT("You Have Been Killed!")));
 	
 	if (ElimmedCharacter) ElimmedCharacter->Elim();
 }

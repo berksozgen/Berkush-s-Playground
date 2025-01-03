@@ -212,6 +212,12 @@ void AWeapon::Dropped()
 	StrikeOwnerController = nullptr;
 }
 
+void AWeapon::AddAmmo(int32 AmmoToAdd)
+{
+	Ammo = FMath::Clamp(Ammo - AmmoToAdd, 0, MagCapacity); //Bu da negatif yollama essekligini yapariz diye, cok ta gerek yok gerci
+	SetHUDAmmo(); //Serverda da calissin diye
+}
+
 bool AWeapon::IsEmpty()
 {
 	return Ammo <= 0;

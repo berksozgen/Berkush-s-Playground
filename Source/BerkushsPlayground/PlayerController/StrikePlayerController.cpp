@@ -22,6 +22,7 @@ void AStrikePlayerController::OnPossess(APawn* InPawn)
 	if (StrikeCharacter)
 	{
 		SetHUDHealth(StrikeCharacter->GetHealth(), StrikeCharacter->GetMaxHealth()); //Characteri'in beginplayeyinden bunu kaldirmama nedenimiz, ilk oyun basladiginda overlaylerin daha initiliza olmamasi
+		SetHUDKilledText(FString(""));
 		//SetKilledText(FText::FromString(TEXT("")));
 	}
 }
@@ -114,5 +115,17 @@ void AStrikePlayerController::SetHUDCarriedAmmo(int32 Ammo)
 	{
 		FString CarriedAmmoText = FString::Printf(TEXT("%d"), Ammo);
 		StrikeHUD->CharacterOverlay->CarriedAmmoAmount->SetText(FText::FromString(CarriedAmmoText));
+	}
+}
+
+void AStrikePlayerController::SetHUDWeaponAmmoType(FString AmmoType)
+{
+	StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
+
+	bool bHUDValid = StrikeHUD && StrikeHUD->CharacterOverlay && StrikeHUD->CharacterOverlay->WeaponAmmoType; //siralama onemli btw
+	
+	if (bHUDValid)
+	{
+		StrikeHUD->CharacterOverlay->WeaponAmmoType->SetText(FText::FromString(AmmoType));
 	}
 }

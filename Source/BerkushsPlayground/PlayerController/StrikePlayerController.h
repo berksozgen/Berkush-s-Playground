@@ -22,6 +22,7 @@ public:
 	void SetHUDKilledText(FString KilledText);
 	void SetHUDWeaponAmmo(int32 Ammo);
 	void SetHUDCarriedAmmo(int32 Ammo);
+	void SetHUDWeaponAmmoType(FString AmmoType);
 	virtual void OnPossess(APawn* InPawn) override;
 protected:
 	virtual void BeginPlay() override;

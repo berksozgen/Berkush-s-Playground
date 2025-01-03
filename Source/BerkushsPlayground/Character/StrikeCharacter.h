@@ -7,6 +7,7 @@
 #include "BerkushsPlayground/StrikeTypes/TurningInPlace.h"
 #include "BerkushsPlayground/Interfaces/InteractWithCrosshairsInterface.h"
 #include "Components/TimelineComponent.h"
+#include "BerkushsPlayground/StrikeTypes/CombatState.h"
 #include "StrikeCharacter.generated.h"
 
 class USpringArmComponent;
@@ -131,7 +132,7 @@ private:
 	UFUNCTION()
 	void OnRep_OverlappingWeapon(AWeapon* LastWeapon); //RepNotifylara sadece kendi turlerindeki seyi input param olarak verebiliyoruz
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCombatComponent* Combat;
 
 	UFUNCTION(Server, Reliable)
@@ -224,6 +225,7 @@ public:
 	FORCEINLINE bool IsElimmed() const { return bElimmed; }
 	FORCEINLINE float GetHealth() const { return Health; }
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
+	ECombatState GetCombatState() const;
 	
 	FVector GetHitTarget() const;
 };

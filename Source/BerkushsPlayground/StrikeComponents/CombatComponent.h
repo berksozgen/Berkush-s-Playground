@@ -6,6 +6,7 @@
 #include "BerkushsPlayground/HUD/StrikeHUD.h"
 #include "Components/ActorComponent.h"
 #include "BerkushsPlayground/Weapon/WeaponTypes.h"
+#include "BerkushsPlayground/StrikeTypes/CombatState.h"
 #include "CombatComponent.generated.h"
 
 #define TRACE_LENGHT 80'000.f
@@ -23,6 +24,8 @@ public:
 
 	void EquipWeapon(class AWeapon* WeaponToEquip);
 	void Reload();
+	UFUNCTION(BlueprintCallable)
+	void FinishReloading();
 
 protected:
 	virtual void BeginPlay() override;
@@ -47,6 +50,9 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Server_Reload();
+
+	void HandleReload();
+	int32 AmountToReload();
 
 private:
 	UPROPERTY()
@@ -118,6 +124,15 @@ private:
 	int32 StartingAssaultRifleAmmo = 30;
 
 	void InitializeCarriedAmmo();
+
+	UPROPERTY(ReplicatedUsing = OnRep_CombatState)
+	ECombatState CombatState = ECombatState::ECS_Unoccupied;
+	UFUNCTION()
+	void OnRep_CombatState();
+
+	void UpdateAmmoValues();
+
+	void UpdateWeaponAmmoTypeText(EWeaponType WeaponType);
 public:	
 	
 };

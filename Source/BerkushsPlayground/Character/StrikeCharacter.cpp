@@ -88,7 +88,8 @@ void AStrikeCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	UpdateHUDHealth();
-
+	if (StrikePlayerController)	StrikePlayerController->SetHUDKilledText(FString(""));
+	
 	if (HasAuthority())
 	{
 		OnTakeAnyDamage.AddDynamic(this, &AStrikeCharacter::ReceiveDamage);
@@ -235,9 +236,15 @@ void AStrikeCharacter::AimOffset(float DeltaTime)
 void AStrikeCharacter::UpdateHUDHealth() //Bunu owner onlye alayim bi ara
 {
 	StrikePlayerController = StrikePlayerController == nullptr ? Cast<AStrikePlayerController>(GetController()) : StrikePlayerController;
-	if (StrikePlayerController) StrikePlayerController->SetHUDHealth(Health, MaxHealth);
+	if (StrikePlayerController)
+	{
+		StrikePlayerController->SetHUDHealth(Health, MaxHealth);
+		if (Health <= 0.f) //En dogru yer burasi ddegil biliyom
+		{
+			StrikePlayerController->SetHUDKilledText(FString(TEXT("You Have Been Eliminated!")));
+		}
+	}
 }
-
 
 void AStrikeCharacter::CalculateAO_Pitch()
 {
@@ -552,4 +559,10 @@ void AStrikeCharacter::PollInit()
 			StrikePlayerState->AddToDeaths(0);
 		}
 	}
+}
+
+ECombatState AStrikeCharacter::GetCombatState() const
+{
+	if (Combat == nullptr) return ECombatState::ECS_MAX;
+	return Combat->CombatState;
 }

@@ -7,6 +7,7 @@
 #include "BerkushsPlayground/Weapon/Weapon.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "BerkushsPlayground/StrikeTypes/CombatState.h"
 
 void UStrikeAnimInstance::NativeInitializeAnimation()
 {
@@ -38,7 +39,7 @@ void UStrikeAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	TurningInPlace = StrikeCharacter->GetTurningInPlace();
 	bRotateRootBone = StrikeCharacter->ShouldRotateRootBone();
 	bElimmed = StrikeCharacter->IsElimmed();
-
+	
 	//Offset Yaw for Strafing
 	FRotator AimRotaition = StrikeCharacter->GetBaseAimRotation(); //Bu global rotationu veriyor
 	FRotator MovementRotation = UKismetMathLibrary::MakeRotFromX(StrikeCharacter->GetVelocity());
@@ -76,4 +77,8 @@ void UStrikeAnimInstance::NativeUpdateAnimation(float DeltaTime)
 			RightHandRotation = FMath::RInterpTo(RightHandRotation, LookAtRotation, DeltaTime, 30.f);
 		}
 	}
+
+	bUseFABRIK = StrikeCharacter->GetCombatState() != ECombatState::ECS_Reloading;
+	bUseAimOffsets = StrikeCharacter->GetCombatState() != ECombatState::ECS_Reloading;
+	bTransformRightHand = StrikeCharacter->GetCombatState() != ECombatState::ECS_Reloading;
 }

@@ -14,6 +14,7 @@
 #include "TimerManager.h"
 //Debug Helpers
 #include "DrawDebugHelpers.h"
+#include "Sound/SoundCue.h"
 
 UCombatComponent::UCombatComponent()
 {
@@ -30,6 +31,7 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
 	DOREPLIFETIME(UCombatComponent, bAiming);
 	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedAmmo, COND_OwnerOnly); //Diger clientler icin onemli degil bu
+	DOREPLIFETIME(UCombatComponent, CombatState);
 }
 
 void UCombatComponent::BeginPlay()
@@ -229,6 +231,7 @@ void UCombatComponent::FireTimerFinished()
 	bCanFire = true;
 	if (EquippedWeapon == nullptr) return;
 	if (bFireButtonPressed && EquippedWeapon->bAutomatic) Fire();
+	if (EquippedWeapon->IsEmpty()) Reload();
 }
 
 void UCombatComponent::Server_Fire_Implementation(const FVector_NetQuantize& TraceHitTarget) { Multicast_Fire(TraceHitTarget); }
@@ -236,7 +239,7 @@ void UCombatComponent::Multicast_Fire_Implementation(const FVector_NetQuantize& 
 {
 	if (EquippedWeapon == nullptr) return;
 	
-	if (Character)
+	if (Character && CombatState == ECombatState::ECS_Unoccupied)
 	{
 		Character->PlayFireMontage(bAiming);
 		EquippedWeapon->Fire(TraceHitTarget);
@@ -268,7 +271,11 @@ void UCombatComponent::EquipWeapon(class AWeapon* WeaponToEquip)
 	if (Controller)
 	{
 		Controller->SetHUDCarriedAmmo(CarriedAmmo);
+		UpdateWeaponAmmoTypeText(EquippedWeapon->GetWeaponType());
 	}
+	
+	if (EquippedWeapon->EquipSound) UGameplayStatics::PlaySoundAtLocation(this, EquippedWeapon->EquipSound, Character->GetActorLocation());
+	if (EquippedWeapon->IsEmpty()) Reload();
 	
 	Character->GetCharacterMovement()->bOrientRotationToMovement = false;//1 Bunlari burada birakma nedenizim repnotifylar sadece clientlerde calisiyor, serverde calismiyor
 	Character->bUseControllerRotationYaw = true;//1
@@ -276,7 +283,7 @@ void UCombatComponent::EquipWeapon(class AWeapon* WeaponToEquip)
 
 void UCombatComponent::Reload()
 {
-	if (CarriedAmmo > 0)
+	if (CarriedAmmo > 0 && CombatState != ECombatState::ECS_Reloading)
 	{
 		Server_Reload();
 	}
@@ -284,10 +291,95 @@ void UCombatComponent::Reload()
 
 void UCombatComponent::Server_Reload_Implementation()
 {
-	if (Character == nullptr) //Mermiyi burda da checklesem iyi olabilir
+	if (Character == nullptr) return;//Mermiyi burda da checklesem iyi olabilir
+	CombatState = ECombatState::ECS_Reloading;
+	HandleReload();
+}
+
+void UCombatComponent::FinishReloading()
+{
+	if (Character == nullptr) return;
+	if (Character->HasAuthority()) //yahu zaten bunu sadece server cagirmicak mi, serverda nullcheck de atiyoruz otorite check de //He anim notify ile cagircakmisiz bunu
 	{
-		Character->PlayReloadMontage();
+		CombatState = ECombatState::ECS_Unoccupied;
+		UpdateAmmoValues();
 	}
+	if (bFireButtonPressed)
+	{
+		Fire();
+	}
+}
+
+void UCombatComponent::UpdateAmmoValues()
+{
+	if (Character == nullptr || EquippedWeapon == nullptr) return;
+	
+	int32 ReloadAmount = AmountToReload();
+	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
+	{
+		CarriedAmmoMap[EquippedWeapon->GetWeaponType()] -= ReloadAmount;
+		CarriedAmmo = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
+	}
+	Controller = Controller == nullptr ? Cast<AStrikePlayerController>(Character->Controller) : Controller;
+	if (Controller)
+	{
+		Controller->SetHUDCarriedAmmo(CarriedAmmo);
+	}
+	EquippedWeapon->AddAmmo(-ReloadAmount);
+}
+
+void UCombatComponent::UpdateWeaponAmmoTypeText(EWeaponType WeaponType)
+{
+	if (Controller == nullptr) return;
+	FString WeaponTypeString(TEXT(""));
+	switch(WeaponType)
+	{
+	case EWeaponType::EWT_AssaultRifle:
+		WeaponTypeString = FString(TEXT("Assault Rifle"));
+		break;
+	case EWeaponType::EWT_Pistol:
+		WeaponTypeString = FString(TEXT("Pistol"));
+		break;
+	case EWeaponType::EWT_SniperRifle:
+		WeaponTypeString = FString(TEXT("Sniper Rifle"));
+		break;
+	}
+	Controller->SetHUDWeaponAmmoType(WeaponTypeString);
+}
+
+void UCombatComponent::OnRep_CombatState()
+{
+	switch (CombatState)
+	{
+		case ECombatState::ECS_Reloading:
+			HandleReload();
+		break;
+		case ECombatState::ECS_Unoccupied:
+			if (bFireButtonPressed)
+			{
+				Fire();
+			}
+		break;
+	}
+}
+
+void UCombatComponent::HandleReload()
+{
+	Character->PlayReloadMontage();
+}
+
+int32 UCombatComponent::AmountToReload()
+{
+	if (EquippedWeapon == nullptr) return 0;
+	int32 RoomInMag = EquippedWeapon->GetMagCapacity() - EquippedWeapon->GetAmmo();
+	
+	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
+	{
+		int32 AmountCarried = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
+		int32 Least = FMath::Min(RoomInMag, AmountCarried);
+		return FMath::Clamp(RoomInMag, 0, Least); //Biraz hata engelleme seyi, esseklik yapip weaponu spawnlarken 50 mermi icinde, magazine 30 mermi dersek RoomInMag - 20 olcak, taklaya gelcez
+	}
+	return 0;
 }
 
 void UCombatComponent::OnRep_EquippedWeapon()
@@ -299,13 +391,15 @@ void UCombatComponent::OnRep_EquippedWeapon()
 		if (HandSocket) HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());//O yuzden serverden gelen yanittan once kendimiz fizikleri kaptioyuz, onu da set weapon state fonksiyonu hallediyor zaten
 		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
 		Character->bUseControllerRotationYaw = true;
+		UpdateWeaponAmmoTypeText(EquippedWeapon->GetWeaponType()); //bunun icin dogru yer mi bilmiyorum
+		if (EquippedWeapon->EquipSound) UGameplayStatics::PlaySoundAtLocation(this, EquippedWeapon->EquipSound, Character->GetActorLocation());
 	}
 }
 
 bool UCombatComponent::CanFire()
 {
 	if (EquippedWeapon == nullptr) return false;
-	return !EquippedWeapon->IsEmpty() || !bCanFire;
+	return !EquippedWeapon->IsEmpty() && bCanFire && CombatState != ECombatState::ECS_Reloading/*esittir unoccupied dedi, sacma geldi*/;
 }
 
 void UCombatComponent::OnRep_CarriedAmmo()
