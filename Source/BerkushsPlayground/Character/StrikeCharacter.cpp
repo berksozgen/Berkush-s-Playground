@@ -18,6 +18,9 @@
 #include "BerkushsPlayground/BerkushsPlayground.h"
 #include "BerkushsPlayground/PlayerController/StrikePlayerController.h"
 #include "BerkushsPlayground/GameMode/StrikeGameMode.h"
+#include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Sound/SoundCue.h"
 
 #pragma region UnrealDefaultFunc
 AStrikeCharacter::AStrikeCharacter()
@@ -58,6 +61,8 @@ AStrikeCharacter::AStrikeCharacter()
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 	//Projectile Capsulu degil meshi kullansin diye
 	GetMesh()->SetCollisionObjectType(ECC_SkeletalMesh);
+
+	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
 }
 
 void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -88,10 +93,11 @@ void AStrikeCharacter::BeginPlay()
 	}
 }
 
-void AStrikeCharacter::UpdateHUDHealth() //Bunu owner onlye alayim bi ara
+void AStrikeCharacter::Destroyed()
 {
-	StrikePlayerController = StrikePlayerController == nullptr ? Cast<AStrikePlayerController>(GetController()) : StrikePlayerController;
-	if (StrikePlayerController) StrikePlayerController->SetHUDHealth(Health, MaxHealth);
+	Super::Destroyed();
+
+	if (ElimBotComponent) ElimBotComponent->DestroyComponent();
 }
 
 void AStrikeCharacter::Tick(float DeltaTime)
@@ -201,6 +207,13 @@ void AStrikeCharacter::AimOffset(float DeltaTime)
 	CalculateAO_Pitch();
 }
 #pragma endregion JustOwner
+
+void AStrikeCharacter::UpdateHUDHealth() //Bunu owner onlye alayim bi ara
+{
+	StrikePlayerController = StrikePlayerController == nullptr ? Cast<AStrikePlayerController>(GetController()) : StrikePlayerController;
+	if (StrikePlayerController) StrikePlayerController->SetHUDHealth(Health, MaxHealth);
+}
+
 
 void AStrikeCharacter::CalculateAO_Pitch()
 {
@@ -358,31 +371,6 @@ void AStrikeCharacter::OnRep_Health()
 	PlayHitReactMontage();
 }
 
-void AStrikeCharacter::Elim()
-{
-	Multicast_Elim();
-	GetWorldTimerManager().SetTimer(
-		ElimTimer,
-		this,
-		&AStrikeCharacter::ElimTimerFinished,
-		ElimDelay);
-}
-
-void AStrikeCharacter::ElimTimerFinished() //Timer sadece serverde acildigindan, gamemode a erismek safe
-{
-	AStrikeGameMode* StrikeGameMode = GetWorld()->GetAuthGameMode<AStrikeGameMode>();
-	if (StrikeGameMode)
-	{
-		StrikeGameMode->RequestRespawn(this, Controller/*GameMode'da controlleri check ediyoruz zaten, this girdisinin de null olacak hali yok herhal*/);
-	}
-}
-
-void AStrikeCharacter::Multicast_Elim_Implementation()
-{
-	bElimmed = true;
-	PlayElimMontage();
-}
-
 void AStrikeCharacter::SetOverlappingWeapon(AWeapon* Weapon) //Bu kod, Weapon'un Collision Handle'lamasi yuzunden sadece serverde calisiyor
 {
 	if (OverlappingWeapon)
@@ -446,8 +434,76 @@ void AStrikeCharacter::SimProxiesTurn()
 }
 #pragma endregion NetworkEvents
 
-FVector AStrikeCharacter::GetHitTarget() const
+FVector AStrikeCharacter::GetHitTarget() const //Bunu bi da yoklayim network mu degil mi
 {
 	if (Combat == nullptr) return FVector();
 	return Combat->HitTarget;
 }
+
+#pragma region Elimination //Btw Bunlar da network Event ama cok doldu orasi
+void AStrikeCharacter::Elim()
+{
+	if (Combat && Combat->EquippedWeapon) Combat->EquippedWeapon->Dropped();
+	Multicast_Elim();
+	GetWorldTimerManager().SetTimer(
+		ElimTimer,
+		this,
+		&AStrikeCharacter::ElimTimerFinished,
+		ElimDelay);
+}
+
+void AStrikeCharacter::Multicast_Elim_Implementation()
+{
+	bElimmed = true;
+	PlayElimMontage();
+	if (DissolveMaterialInstance) //Start Dissolve Effect
+	{
+		DynamicDissolveMaterialInstance = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);
+		for (int i = 0; i < GetMesh()->GetNumMaterials(); i ++) GetMesh()->SetMaterial(i, DynamicDissolveMaterialInstance); //adamda for dongusu yok Optimized karaktere gectigi icin, ama ben costimazsyon icin feda ettim onu
+		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), .55f);
+		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Glow"), 200.f);
+	}
+	StartDissolve(); //Bunu if icine atsam mi acaba
+	//Disable Character Movement
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->StopMovementImmediately(); //Adam kamerayi oynatip adami dondurmesin diye, tatli duruyor acikken gerci
+	if (StrikePlayerController)
+	{
+		DisableInput(StrikePlayerController);
+	}
+	//Disable collision
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	//Spawn ElimBot
+	if (ElimBotEffect)
+	{
+		FVector ElimBotSpawnPoint(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z + 200.f);
+		ElimBotComponent = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ElimBotEffect, ElimBotSpawnPoint, GetActorRotation());
+	}
+	if (ElimBotSound) UGameplayStatics::PlaySoundAtLocation(this, ElimBotSound, GetActorLocation());
+}
+
+void AStrikeCharacter::StartDissolve()
+{
+	DissolveTrack.BindDynamic(this, &AStrikeCharacter::UpdateDissolveMaterial);
+	if (DissolveCurve && DissolveTimeline)
+	{
+		DissolveTimeline->AddInterpFloat(DissolveCurve, DissolveTrack);
+		DissolveTimeline->Play(); //Play from start yapilabilir belki
+	}
+}
+
+void AStrikeCharacter::UpdateDissolveMaterial(float DissolveValue)
+{
+	if (DynamicDissolveMaterialInstance) DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), DissolveValue);
+}
+
+void AStrikeCharacter::ElimTimerFinished() //Timer sadece serverde acildigindan, gamemode a erismek safe
+{
+	AStrikeGameMode* StrikeGameMode = GetWorld()->GetAuthGameMode<AStrikeGameMode>();
+	if (StrikeGameMode)
+	{
+		StrikeGameMode->RequestRespawn(this, Controller/*GameMode'da controlleri check ediyoruz zaten, this girdisinin de null olacak hali yok herhal*/);
+	}
+}
+#pragma endregion Elimination

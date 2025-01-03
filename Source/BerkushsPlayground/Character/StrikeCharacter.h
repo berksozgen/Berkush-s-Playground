@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "BerkushsPlayground/StrikeTypes/TurningInPlace.h"
 #include "BerkushsPlayground/Interfaces/InteractWithCrosshairsInterface.h"
+#include "Components/TimelineComponent.h"
 #include "StrikeCharacter.generated.h"
 
 class USpringArmComponent;
@@ -66,6 +67,8 @@ public:
 	void Elim();
 	UFUNCTION(NetMulticast, Reliable) //Bunu multicast yapacagimiza OnRep'te can kontrolunu yapsak ne olurdu ki
 	void Multicast_Elim();
+
+	virtual void Destroyed() override;
 	
 	/** Called for movement input */
 	void EnhancedMove(const FInputActionValue& Value);
@@ -153,6 +156,8 @@ private:
 
 	float CalculateSpeed();
 
+	class AStrikePlayerController* StrikePlayerController;
+
 	//Player Health //Cani player state yerine buraya ekleme nedenimiz, PlayerState'den daha fazla net update aliyor olusumuz
 	UPROPERTY(EditAnywhere, Category = "Player Stats")
 	float MaxHealth = 100.f;
@@ -167,7 +172,28 @@ private:
 	float ElimDelay = 3.f;
 	void ElimTimerFinished();
 
-	class AStrikePlayerController* StrikePlayerController;
+	//Dissolve Effect
+	UPROPERTY(VisibleAnywhere)
+	UTimelineComponent* DissolveTimeline;
+	FOnTimelineFloat DissolveTrack;
+	UPROPERTY(EditAnywhere)
+	UCurveFloat* DissolveCurve;
+	void StartDissolve();
+	UFUNCTION()
+	void UpdateDissolveMaterial(float DissolveValue);
+	UPROPERTY(EditAnywhere, Category = Elim) //Material Instance set on the Blueprint, used with the dynamic material instance
+	UMaterialInstance* DissolveMaterialInstance;
+	UPROPERTY(VisibleAnywhere, Category = Elim) //Dynamic Instance that we can change at runtime
+	UMaterialInstanceDynamic* DynamicDissolveMaterialInstance;
+
+	//ElimBot
+	UPROPERTY(EditAnywhere, Category = Elim)
+	UParticleSystem* ElimBotEffect;
+	UPROPERTY(VisibleAnywhere, Category = Elim)
+	UParticleSystemComponent* ElimBotComponent;
+	UPROPERTY(EditAnywhere, Category = Elim)
+	class USoundCue* ElimBotSound;
+
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped();

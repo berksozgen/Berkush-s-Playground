@@ -256,6 +256,9 @@ void UCombatComponent::OnRep_EquippedWeapon()
 {
 	if (EquippedWeapon && Character)
 	{
+		EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);//Bunlari buraya da ekledi, ustteki fonksiyon time safe degil diye
+		const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("RightHandSocket"));//He tamam yukardaki serverde calisiyor, bu clientte, silahimiz simdi fizik tabanli diye attach atamiyoruz
+		if (HandSocket) HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());//O yuzden serverden gelen yanittan once kendimiz fizikleri kaptioyuz, onu da set weapon state fonksiyonu hallediyor zaten
 		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
 		Character->bUseControllerRotationYaw = true;
 	}
