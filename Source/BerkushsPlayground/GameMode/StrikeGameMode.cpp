@@ -5,10 +5,25 @@
 #include "BerkushsPlayground/PlayerController/StrikePlayerController.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
+#include "BerkushsPlayground/PlayerState/StrikePlayerState.h"
 
 void AStrikeGameMode::PlayerEliminated(AStrikeCharacter* ElimmedCharacter,
                                        AStrikePlayerController* VictimController, AStrikePlayerController* AttackerController)
 {
+	AStrikePlayerState* AttackerPlayerState = AttackerController ? Cast<AStrikePlayerState>(AttackerController->PlayerState/*niye get player state kullanmadik ki*/) : nullptr;
+	AStrikePlayerState* VictimPlayerState = VictimController ? Cast<AStrikePlayerState>(VictimController->PlayerState) : nullptr;
+
+	if (AttackerPlayerState && AttackerPlayerState != VictimPlayerState)
+	{
+		AttackerPlayerState->AddToScore(14.07f);
+		AttackerPlayerState->AddToKills(1);
+	}
+	if (VictimPlayerState)
+	{
+		VictimPlayerState->AddToDeaths(1);
+	}
+	if (VictimController) VictimController->SetHUDKilledText(FString(TEXT("You Have Been Killed!")));
+	
 	if (ElimmedCharacter) ElimmedCharacter->Elim();
 }
 

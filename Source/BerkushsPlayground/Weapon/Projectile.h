@@ -32,6 +32,7 @@ private:
 	class UProjectileMovementComponent* ProjectileMovementComponent; //Unreal built in component, character movement component gibi replikasyonu kendi hallediyor
 	UPROPERTY(EditAnywhere)
 	class UParticleSystem* Tracer;
+	UPROPERTY()
 	class UParticleSystemComponent* TracerComponent;
 
 	UPROPERTY(EditAnywhere)

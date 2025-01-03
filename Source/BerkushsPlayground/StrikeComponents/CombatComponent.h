@@ -44,8 +44,11 @@ protected:
 	void SetHUDCrosshairs(float DeltaTime);
 
 private:
+	UPROPERTY()
 	class AStrikeCharacter* Character;
+	UPROPERTY()
 	class AStrikePlayerController* Controller;
+	UPROPERTY()
 	class AStrikeHUD* HUD;
 
 	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon) //Anim Instance buna erisebilsin diye, Her Client anim instancelari kendi uzerinde cagiriyor.

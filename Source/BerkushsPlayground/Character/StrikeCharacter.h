@@ -105,6 +105,8 @@ protected:
 	void ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
 
 	void UpdateHUDHealth();
+	//Poll for any relelvant classes and initialize our HUD /*Begin play kullanmama nedenimiz, bazi network tabanli unreal siniflarinin initialise olmasi 1-2 frame suruyor, bunu tickte yazmak yerine baska bir yer bulsam iyi olcak*/
+	void PollInit();
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
@@ -156,6 +158,7 @@ private:
 
 	float CalculateSpeed();
 
+	UPROPERTY()
 	class AStrikePlayerController* StrikePlayerController;
 
 	//Player Health //Cani player state yerine buraya ekleme nedenimiz, PlayerState'den daha fazla net update aliyor olusumuz
@@ -194,6 +197,10 @@ private:
 	UPROPERTY(EditAnywhere, Category = Elim)
 	class USoundCue* ElimBotSound;
 
+	//
+	UPROPERTY()
+	class AStrikePlayerState* StrikePlayerState;
+
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped();
@@ -205,6 +212,8 @@ public:
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
 	FORCEINLINE bool IsElimmed() const { return bElimmed; }
+	FORCEINLINE float GetHealth() const { return Health; }
+	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 	
 	FVector GetHitTarget() const;
 };

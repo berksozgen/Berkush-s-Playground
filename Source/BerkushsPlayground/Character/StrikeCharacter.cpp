@@ -21,6 +21,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Sound/SoundCue.h"
+#include "BerkushsPlayground/PlayerState/StrikePlayerState.h"
 
 #pragma region UnrealDefaultFunc
 AStrikeCharacter::AStrikeCharacter()
@@ -116,6 +117,7 @@ void AStrikeCharacter::Tick(float DeltaTime)
 	}
 
 	HideCameraIfCharacterClose();
+	PollInit(); //Dedigim gibi buna yer bulmak lazim
 }
 #pragma endregion UnrealDefaultFunc
 
@@ -507,3 +509,17 @@ void AStrikeCharacter::ElimTimerFinished() //Timer sadece serverde acildigindan,
 	}
 }
 #pragma endregion Elimination
+
+void AStrikeCharacter::PollInit()
+{
+	if (StrikePlayerState == nullptr)
+	{
+		StrikePlayerState = GetPlayerState<AStrikePlayerState>(); //iste bu first frame de null donduruyor
+		if (StrikePlayerState)
+		{
+			StrikePlayerState->AddToScore(0.f); //0 yaziriyoruz eklenmiyo moruk
+			StrikePlayerState->AddToKills(0);
+			StrikePlayerState->AddToDeaths(0);
+		}
+	}
+}
