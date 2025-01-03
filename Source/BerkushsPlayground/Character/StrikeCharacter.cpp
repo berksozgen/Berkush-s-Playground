@@ -22,6 +22,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Sound/SoundCue.h"
 #include "BerkushsPlayground/PlayerState/StrikePlayerState.h"
+#include "BerkushsPlayground/Weapon/WeaponTypes.h"
 
 #pragma region UnrealDefaultFunc
 AStrikeCharacter::AStrikeCharacter()
@@ -132,6 +133,27 @@ void AStrikeCharacter::PlayFireMontage(bool bAiming)
 		AnimInstance->Montage_Play(FireWeaponMontage);
 		FName SectionName;
 		SectionName = bAiming ? FName("RifleAim") : FName("RifleHip");
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
+void AStrikeCharacter::PlayReloadMontage()
+{
+	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && ReloadMontage)
+	{
+		AnimInstance->Montage_Play(ReloadMontage);
+		FName SectionName;
+
+		switch (Combat->EquippedWeapon->GetWeaponType())
+		{
+		case EWeaponType::EWT_AssaultRifle:
+			SectionName = FName("Rifle");
+			break;
+		}
+
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}
 }
@@ -283,6 +305,8 @@ void AStrikeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		// Firing
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &AStrikeCharacter::FirePressed);
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &AStrikeCharacter::FireReleased);
+		//Reloading
+		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &AStrikeCharacter::ReloadPressed);
 	}
 	else UE_LOG(LogTemp, Error, TEXT("Strike Karakteri EnhancedInputComponent'i Aktive Edemedi"));
 }
@@ -320,6 +344,8 @@ void AStrikeCharacter::AimReleased(const FInputActionValue& Value) { if (Combat)
 
 void AStrikeCharacter::FirePressed(const FInputActionValue& Value) { if (Combat) Combat->FireButtonPressed(true); }
 void AStrikeCharacter::FireReleased(const FInputActionValue& Value) { if (Combat) Combat->FireButtonPressed(false); }
+
+void AStrikeCharacter::ReloadPressed(const FInputActionValue& Value) { if (Combat) Combat->Reload(); }
 
 void AStrikeCharacter::MoveForward(float Value)
 {
@@ -456,6 +482,10 @@ void AStrikeCharacter::Elim()
 
 void AStrikeCharacter::Multicast_Elim_Implementation()
 {
+	if (StrikePlayerController)
+	{
+		StrikePlayerController->SetHUDWeaponAmmo(0);
+	}
 	bElimmed = true;
 	PlayElimMontage();
 	if (DissolveMaterialInstance) //Start Dissolve Effect

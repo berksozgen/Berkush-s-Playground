@@ -52,6 +52,10 @@ class BERKUSHSPLAYGROUND_API AStrikeCharacter : public ACharacter, public IInter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* FireAction;
 
+	/** Reload Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ReloadAction;
+
 public:
 	AStrikeCharacter();
 	virtual void Tick(float DeltaTime) override;
@@ -60,6 +64,7 @@ public:
 	virtual void PostInitializeComponents() override;
 
 	void PlayFireMontage(bool bAiming);
+	void PlayReloadMontage();
 	void PlayElimMontage();
 	
 	virtual void OnRep_ReplicatedMovement() override;
@@ -84,6 +89,8 @@ public:
 	//
 	void FirePressed(const FInputActionValue& Value);
 	void FireReleased(const FInputActionValue& Value);
+	//
+	void ReloadPressed(const FInputActionValue& Value);
 	
 protected:
 	virtual void BeginPlay() override;
@@ -138,8 +145,11 @@ private:
 	ETurningInPlace TurningInPlace;
 	void TurnInPlace(float DeltaTime);
 
+	//Animation Montages
 	UPROPERTY(EditAnywhere, Category = Combat)
 	class UAnimMontage* FireWeaponMontage;
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* ReloadMontage;
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* HitReactMontage;
 	UPROPERTY(EditAnywhere, Category = Combat)

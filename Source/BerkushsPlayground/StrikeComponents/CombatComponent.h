@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "BerkushsPlayground/HUD/StrikeHUD.h"
 #include "Components/ActorComponent.h"
+#include "BerkushsPlayground/Weapon/WeaponTypes.h"
 #include "CombatComponent.generated.h"
 
 #define TRACE_LENGHT 80'000.f
@@ -21,6 +22,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	void EquipWeapon(class AWeapon* WeaponToEquip);
+	void Reload();
 
 protected:
 	virtual void BeginPlay() override;
@@ -42,6 +44,9 @@ protected:
 	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
 
 	void SetHUDCrosshairs(float DeltaTime);
+
+	UFUNCTION(Server, Reliable)
+	void Server_Reload();
 
 private:
 	UPROPERTY()
@@ -98,6 +103,21 @@ private:
 	
 	void StartFireTimer();
 	void FireTimerFinished();
+
+	bool CanFire();
+
+	//Carried ammo for the currently-equipped weapon
+	UPROPERTY(ReplicatedUsing = OnRep_CarriedAmmo)
+	int32 CarriedAmmo;
+	UFUNCTION()
+	void OnRep_CarriedAmmo();
+
+	TMap<EWeaponType, int32> CarriedAmmoMap; /*Bu replike olmuyormus*/
+
+	UPROPERTY(EditAnywhere)
+	int32 StartingAssaultRifleAmmo = 30;
+
+	void InitializeCarriedAmmo();
 public:	
 	
 };

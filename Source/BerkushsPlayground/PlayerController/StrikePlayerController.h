@@ -20,6 +20,8 @@ public:
 	void SetHUDKills(int32 Kills);
 	void SetHUDDeaths(int32 Deaths);
 	void SetHUDKilledText(FString KilledText);
+	void SetHUDWeaponAmmo(int32 Ammo);
+	void SetHUDCarriedAmmo(int32 Ammo);
 	virtual void OnPossess(APawn* InPawn) override;
 protected:
 	virtual void BeginPlay() override;

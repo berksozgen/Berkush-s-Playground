@@ -90,3 +90,29 @@ void AStrikePlayerController::SetHUDKilledText(FString KilledText)
 		StrikeHUD->CharacterOverlay->KilledText->SetText(FText::FromString(KilledText));
 	}
 }
+
+void AStrikePlayerController::SetHUDWeaponAmmo(int32 Ammo)
+{
+	StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
+
+	bool bHUDValid = StrikeHUD && StrikeHUD->CharacterOverlay && StrikeHUD->CharacterOverlay->WeaponAmmoAmount; //siralama onemli btw
+	
+	if (bHUDValid)
+	{
+		FString WeaponAmmoText = FString::Printf(TEXT("%d"), Ammo);
+		StrikeHUD->CharacterOverlay->WeaponAmmoAmount->SetText(FText::FromString(WeaponAmmoText));
+	}
+}
+
+void AStrikePlayerController::SetHUDCarriedAmmo(int32 Ammo)
+{
+	StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
+
+	bool bHUDValid = StrikeHUD && StrikeHUD->CharacterOverlay && StrikeHUD->CharacterOverlay->CarriedAmmoAmount; //siralama onemli btw
+	
+	if (bHUDValid)
+	{
+		FString CarriedAmmoText = FString::Printf(TEXT("%d"), Ammo);
+		StrikeHUD->CharacterOverlay->CarriedAmmoAmount->SetText(FText::FromString(CarriedAmmoText));
+	}
+}
