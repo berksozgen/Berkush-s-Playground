@@ -6,7 +6,7 @@
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 #include "BerkushsPlayground/PlayerState/StrikePlayerState.h"
-
+//
 AStrikeGameMode::AStrikeGameMode()
 {
 	bDelayedStart = true;
