@@ -24,6 +24,7 @@ public:
 	void SetHUDCarriedAmmo(int32 Ammo);
 	void SetHUDWeaponAmmoType(FString AmmoType);
 	void SetHUDMatchCountdown(float CountdownTime);
+	void SetHUDAnnouncementCountdown(float CountdownTime);
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
@@ -49,11 +50,25 @@ protected:
 	float TimeSyncFrequency = 5.f;
 	float TimeSyncRunningTime = 0.f;
 	void CheckTimeSync(float DeltaTime);
+	void HandleMatchHasStarted();
+	void HandleCooldown();
+
+	UFUNCTION(Server, Reliable)
+	void Server_CheckMatchState();
+
+	UFUNCTION(Client, Reliable)
+	void Client_JoinMidGame(FName _StateOfMatch, float _StartingTime, float _WarmupTime, float _MatchTime, float _CooldownTime);
 private:
 	UPROPERTY()
 	class AStrikeHUD* StrikeHUD;
 
-	float MatchTime = 120.f;
+	UPROPERTY() //for server
+	class AStrikeGameMode* StrikeGameMode;
+
+	float LevelStartingTime = 0.f;
+	float MatchTime = 0.f;
+	float WarmupTime = 0.f;
+	float CooldownTime = 0.f;
 	uint32 CountdownInt = 0;
 
 	UPROPERTY(ReplicatedUsing = OnRep_MatchState)

@@ -26,7 +26,8 @@ public:
 	void Reload();
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
-
+	
+	void FireButtonPressed(bool bPressed);
 protected:
 	virtual void BeginPlay() override;
 	void SetAiming(bool bIsAiming);
@@ -38,7 +39,7 @@ protected:
 	void OnRep_EquippedWeapon();
 
 	void Fire();
-	void FireButtonPressed(bool bPressed);
+	//Burasi void FireButtonPressed(bool bPressed); fonksiyonun onceki yeri, durama gore geri almaya bakacam, mantikli gelmiyor publice tasimak sirf cooldownda millet taramasin yapmak
 	UFUNCTION(Server, Reliable)
 	void Server_Fire(const FVector_NetQuantize& TraceHitTarget); //Bu da 20 Bit'e indiriyor FVectoru :D
 	UFUNCTION(NetMulticast, Reliable)

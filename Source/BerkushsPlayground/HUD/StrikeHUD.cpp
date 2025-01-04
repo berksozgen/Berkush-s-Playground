@@ -2,6 +2,7 @@
 
 #include "StrikeHUD.h"
 
+#include "Announcement.h"
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/PlayerController.h"
 #include "CharacterOverlay.h"
@@ -18,6 +19,16 @@ void AStrikeHUD::AddCharacterOverlay()
 	{
 		CharacterOverlay = CreateWidget<UCharacterOverlay>(PlayerController, CharacterOverlayClass);
 		CharacterOverlay->AddToViewport();
+	}
+}
+
+void AStrikeHUD::AddAnnouncement()
+{
+	APlayerController* PlayerController = GetOwningPlayerController();
+	if (PlayerController && AnnouncementClass)
+	{
+		Announcement = CreateWidget<UAnnouncement>(PlayerController, AnnouncementClass);
+		Announcement->AddToViewport();
 	}
 }
 

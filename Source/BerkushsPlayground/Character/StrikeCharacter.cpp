@@ -75,13 +75,14 @@ void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	//DOREPLIFETIME(AStrikeCharacter, OverlappingWeapon); //Boyle yapinca biri silah ustunde durunca herkeste gozukuyor
 	DOREPLIFETIME(AStrikeCharacter, Health);
 	DOREPLIFETIME(AStrikeCharacter, bIsCurrentlyAlive); //bu da deneme
+	DOREPLIFETIME(AStrikeCharacter, bDisableGameplay);
 }
 
 void AStrikeCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if(Combat) Combat->Character = this;
+	if (Combat) Combat->Character = this;
 }
 
 void AStrikeCharacter::BeginPlay()
@@ -102,11 +103,31 @@ void AStrikeCharacter::Destroyed()
 	Super::Destroyed();
 
 	if (ElimBotComponent) ElimBotComponent->DestroyComponent();
+	//if (Combat && Combat->EquippedWeapon) // bunu da disable input olan sectionda yapti anlamadim valla olunce silah destroy olursa komik olur //komik olmuyormus bu adamin eklicegi vari skm
+	//{
+		//Combat->EquippedWeapon->Destroy();
+	//}
 }
 
 void AStrikeCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	RotateInPlace(DeltaTime);
+	HideCameraIfCharacterClose();
+	PollInit(); //Dedigim gibi buna yer bulmak lazim
+}
+
+#pragma endregion UnrealDefaultFunc
+
+void AStrikeCharacter::RotateInPlace(float DeltaTime) //buna da baska yer bulmak lazim
+{
+	if (bDisableGameplay) //buraya da bu sacma
+	{
+		bUseControllerRotationYaw = false;
+		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+		return; 
+	}
 
 	if (GetLocalRole() > ENetRole::ROLE_SimulatedProxy && IsLocallyControlled()) //Enum oldugu icin yapabiliyorz, none, sim, autonumus, authority diye gidiyo
 	{
@@ -118,11 +139,7 @@ void AStrikeCharacter::Tick(float DeltaTime)
 		if (TimeSinceLastMovementReplication > .25f) OnRep_ReplicatedMovement();
 		CalculateAO_Pitch();
 	}
-
-	HideCameraIfCharacterClose();
-	PollInit(); //Dedigim gibi buna yer bulmak lazim
 }
-#pragma endregion UnrealDefaultFunc
 
 #pragma region Animations
 void AStrikeCharacter::PlayFireMontage(bool bAiming)
@@ -334,10 +351,11 @@ void AStrikeCharacter::EnhancedLook(const FInputActionValue& Value)
 	LookUp(LookAxisVector.Y);
 }
 
-void AStrikeCharacter::Jump() { (bIsCrouched) ? UnCrouch() : Super::Jump(); }
+void AStrikeCharacter::Jump() { if (bDisableGameplay) return; /*icime sinmiyor bu*/ (bIsCrouched) ? UnCrouch() : Super::Jump(); }
 
 void AStrikeCharacter::EquipPressed(const FInputActionValue& Value) //Parametrelere gerek var mi bilmiyorum, Enhanced input mal ama biraz
 {
+	if (bDisableGameplay) return; //icime sinmiyor bu
 	if (Combat)
 	{
 		if (HasAuthority()) Combat->EquipWeapon(OverlappingWeapon);
@@ -345,18 +363,19 @@ void AStrikeCharacter::EquipPressed(const FInputActionValue& Value) //Parametrel
 	}
 }
 
-void AStrikeCharacter::CrouchPressed(const FInputActionValue& Value) { (bIsCrouched) ? UnCrouch() : Crouch(); }
+void AStrikeCharacter::CrouchPressed(const FInputActionValue& Value) { if (bDisableGameplay) return; /*icime sinmiyor bu*/ (bIsCrouched) ? UnCrouch() : Crouch(); }
 
-void AStrikeCharacter::AimPressed(const FInputActionValue& Value) { if (Combat) Combat->SetAiming(true); }
-void AStrikeCharacter::AimReleased(const FInputActionValue& Value) { if (Combat) Combat->SetAiming(false); }
+void AStrikeCharacter::AimPressed(const FInputActionValue& Value) { if (bDisableGameplay) return; /*icime sinmiyor bu*/ if (Combat) Combat->SetAiming(true); }
+void AStrikeCharacter::AimReleased(const FInputActionValue& Value) { if (bDisableGameplay) return; /*icime sinmiyor bu hele burda sacma geldi*/ if (Combat) Combat->SetAiming(false); }
 
-void AStrikeCharacter::FirePressed(const FInputActionValue& Value) { if (Combat) Combat->FireButtonPressed(true); }
-void AStrikeCharacter::FireReleased(const FInputActionValue& Value) { if (Combat) Combat->FireButtonPressed(false); }
+void AStrikeCharacter::FirePressed(const FInputActionValue& Value) { if (bDisableGameplay) return; /*icime sinmiyor bu*/ if (Combat) Combat->FireButtonPressed(true); }
+void AStrikeCharacter::FireReleased(const FInputActionValue& Value) { if (bDisableGameplay) return; /*icime sinmiyor bu*/ if (Combat) Combat->FireButtonPressed(false); }
 
-void AStrikeCharacter::ReloadPressed(const FInputActionValue& Value) { if (Combat) Combat->Reload(); }
+void AStrikeCharacter::ReloadPressed(const FInputActionValue& Value) { if (bDisableGameplay) return; /*icime sinmiyor bu*/ if (Combat) Combat->Reload(); }
 
 void AStrikeCharacter::MoveForward(float Value)
 {
+	if (bDisableGameplay) return; //icime sinmiyor bu
 	if(Controller != nullptr && Value != 0.f)
 	{
 		const FRotator YawRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
@@ -367,6 +386,7 @@ void AStrikeCharacter::MoveForward(float Value)
 
 void AStrikeCharacter::MoveRight(float Value)
 {
+	if (bDisableGameplay) return; //icime sinmiyor bu
 	if(Controller != nullptr && Value != 0.f)
 	{
 		const FRotator YawRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
@@ -507,12 +527,7 @@ void AStrikeCharacter::Multicast_Elim_Implementation()
 	}
 	StartDissolve(); //Bunu if icine atsam mi acaba
 	//Disable Character Movement
-	GetCharacterMovement()->DisableMovement();
-	GetCharacterMovement()->StopMovementImmediately(); //Adam kamerayi oynatip adami dondurmesin diye, tatli duruyor acikken gerci
-	if (StrikePlayerController)
-	{
-		DisableInput(StrikePlayerController);
-	}
+	bDisableGameplay = true;
 	//Disable collision
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);

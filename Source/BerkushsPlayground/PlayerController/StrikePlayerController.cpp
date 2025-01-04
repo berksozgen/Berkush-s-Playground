@@ -8,12 +8,16 @@
 #include "BerkushsPlayground/Character/StrikeCharacter.h"
 #include "Net/UnrealNetwork.h"
 #include "BerkushsPlayground/GameMode/StrikeGameMode.h"
+#include "BerkushsPlayground/HUD/Announcement.h"
+#include "BerkushsPlayground/StrikeComponents/CombatComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 void AStrikePlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-
-	 StrikeHUD = Cast<AStrikeHUD>(GetHUD());
+	
+	StrikeHUD = Cast<AStrikeHUD>(GetHUD());
+	Server_CheckMatchState();
 }
 
 void AStrikePlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -38,6 +42,34 @@ void AStrikePlayerController::CheckTimeSync(float DeltaTime) //bunu timer handle
 	{
 		Server_RequestServerTime(GetWorld()->GetTimeSeconds());
 		TimeSyncRunningTime = 0.f;
+	}
+}
+
+void AStrikePlayerController::Server_CheckMatchState_Implementation()
+{
+	AStrikeGameMode* GameMode = Cast<AStrikeGameMode>(UGameplayStatics::GetGameMode(this));
+	if (GameMode)
+	{
+		LevelStartingTime = GameMode->LevelStartingTime;
+		WarmupTime = GameMode->WarmupTime;
+		MatchTime = GameMode->MatchTime;
+		MatchState = GameMode->GetMatchState();
+		CooldownTime = GameMode->CooldownTime;
+		Client_JoinMidGame(MatchState, LevelStartingTime, WarmupTime, MatchTime, CooldownTime);
+	}
+}
+
+void AStrikePlayerController::Client_JoinMidGame_Implementation(FName _StateOfMatch, float _StartingTime, float _WarmupTime, float _MatchTime, float _CooldownTime) //replicated yerine boyle yaptik
+{
+	LevelStartingTime = _StartingTime;
+	WarmupTime = _WarmupTime;
+	MatchTime = _MatchTime;
+	CooldownTime = _CooldownTime;
+	MatchState = _StateOfMatch;
+	OnMatchStateSet(MatchState);
+	if (StrikeHUD && MatchState == MatchState::WaitingToStart)
+	{
+		StrikeHUD->AddAnnouncement();
 	}
 }
 
@@ -186,6 +218,11 @@ void AStrikePlayerController::SetHUDMatchCountdown(float CountdownTime)
 	
 	if (bHUDValid)
 	{
+		if (CountdownTime < 0.0f)
+		{
+			StrikeHUD->CharacterOverlay->MatchCountdownText->SetText(FText());
+			return;
+		}
 		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
 		int32 Seconds = CountdownTime - Minutes * 60;
 		FString CountDownText = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds); //%02d 1 girdisini 01 yapiyor misal
@@ -193,12 +230,54 @@ void AStrikePlayerController::SetHUDMatchCountdown(float CountdownTime)
 	}
 }
 
+void AStrikePlayerController::SetHUDAnnouncementCountdown(float CountdownTime)
+{
+	StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
+
+	bool bHUDValid = StrikeHUD && StrikeHUD->Announcement && StrikeHUD->Announcement->WarmupTime; //siralama onemli btw
+	
+	if (bHUDValid)
+	{
+		if (CountdownTime < 0.f)
+		{
+			StrikeHUD->Announcement->WarmupTime->SetText(FText());
+			return;
+		}
+		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
+		int32 Seconds = CountdownTime - Minutes * 60;
+		FString CountDownText = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds); //%02d 1 girdisini 01 yapiyor misal
+		StrikeHUD->Announcement->WarmupTime->SetText(FText::FromString(CountDownText));
+	}
+}
+
 void AStrikePlayerController::SetHUDTime()
 {
-	uint32 SecondsLeft = FMath::CeilToInt(MatchTime - GetServerTime());
+	float TimeLeft = 0.f;
+	if (MatchState == MatchState::WaitingToStart) TimeLeft = WarmupTime - GetServerTime() + LevelStartingTime;
+	else if (MatchState == MatchState::InProgress) TimeLeft = WarmupTime /*Burasi biraz degisik*/+ MatchTime - GetServerTime() + LevelStartingTime;
+	else if (MatchState == MatchState::Cooldown) TimeLeft = WarmupTime + MatchTime + CooldownTime - GetServerTime() + LevelStartingTime;
+
+	uint32 SecondsLeft = FMath::CeilToInt(TimeLeft);
+
+	if (HasAuthority()) //Bu bloga ne gerek var bilemedim
+	{
+		StrikeGameMode = StrikeGameMode == nullptr ? Cast<AStrikeGameMode>(UGameplayStatics::GetGameMode(this)) : StrikeGameMode;
+		if (StrikeGameMode)
+		{
+			SecondsLeft = FMath::CeilToInt(StrikeGameMode->GetCountdownTime() + LevelStartingTime); 
+		}
+	}
+	
 	if (CountdownInt != SecondsLeft)
 	{
-		SetHUDMatchCountdown(MatchTime - GetServerTime()); // niye seconds left yapistirmadik ki direkt
+		if (MatchState == MatchState::WaitingToStart || MatchState == MatchState::Cooldown)
+		{
+			SetHUDAnnouncementCountdown(TimeLeft);
+		}
+		else if (MatchState == MatchState::InProgress)
+		{
+			SetHUDMatchCountdown(TimeLeft);
+		}
 	}
 	CountdownInt = SecondsLeft;
 }
@@ -253,24 +332,49 @@ void AStrikePlayerController::OnMatchStateSet(FName State) //just server because
 {
 	MatchState = State;
 	
-	if (MatchState == MatchState::InProgress)
-	{
-		StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
-		if (StrikeHUD)
-		{
-			StrikeHUD->AddCharacterOverlay();
-		}
-	}
+	if (MatchState == MatchState::InProgress) HandleMatchHasStarted();
+	else if (MatchState == MatchState::Cooldown) HandleCooldown();
 }
 
 void AStrikePlayerController::OnRep_MatchState()
 {
-	if (MatchState == MatchState::InProgress)
+	if (MatchState == MatchState::InProgress) HandleMatchHasStarted();
+	else if (MatchState == MatchState::Cooldown) HandleCooldown();
+}
+
+void AStrikePlayerController::HandleMatchHasStarted()
+{
+	StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
+	if (StrikeHUD)
 	{
-		StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
-		if (StrikeHUD)
+		StrikeHUD->AddCharacterOverlay();
+		if (StrikeHUD->Announcement)
 		{
-			StrikeHUD->AddCharacterOverlay();
+			StrikeHUD->Announcement->SetVisibility(ESlateVisibility::Hidden);
 		}
+	}
+}
+
+void AStrikePlayerController::HandleCooldown()
+{
+	StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
+	if (StrikeHUD)
+	{
+		StrikeHUD->CharacterOverlay->RemoveFromParent();
+		bool bHUDValid = StrikeHUD->Announcement && StrikeHUD->Announcement->AnnouncementText && StrikeHUD->Announcement->InfoText;
+		
+		if (bHUDValid)
+		{
+			StrikeHUD->Announcement->SetVisibility(ESlateVisibility::Visible);
+			FString AnnouncementText("New Match Starts In:");
+			StrikeHUD->Announcement->AnnouncementText->SetText(FText::FromString(AnnouncementText));
+			StrikeHUD->Announcement->InfoText->SetText(FText());
+		}
+	}
+	AStrikeCharacter* StrikeCharacter = Cast<AStrikeCharacter>(GetPawn());
+	if (StrikeCharacter && StrikeCharacter->GetCombat())
+	{
+		StrikeCharacter->bDisableGameplay = true; //Bunu yoketmek istiyorum ya aklima yatmadi
+		StrikeCharacter->GetCombat()->FireButtonPressed(false); //bunu da eklemek icin bir suru sey yaptik ak
 	}
 }

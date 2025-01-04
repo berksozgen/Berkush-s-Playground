@@ -92,7 +92,9 @@ public:
 	void FireReleased(const FInputActionValue& Value);
 	//
 	void ReloadPressed(const FInputActionValue& Value);
-	
+
+	UPROPERTY(Replicated)
+	bool bDisableGameplay = false;
 protected:
 	virtual void BeginPlay() override;
 
@@ -115,6 +117,8 @@ protected:
 	void UpdateHUDHealth();
 	//Poll for any relelvant classes and initialize our HUD /*Begin play kullanmama nedenimiz, bazi network tabanli unreal siniflarinin initialise olmasi 1-2 frame suruyor, bunu tickte yazmak yerine baska bir yer bulsam iyi olcak*/
 	void PollInit();
+
+	void RotateInPlace(float DeltaTime);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
@@ -230,6 +234,8 @@ public:
 	FORCEINLINE float GetHealth() const { return Health; }
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 	ECombatState GetCombatState() const;
+	FORCEINLINE UCombatComponent* GetCombat() const { return Combat; }
+	FORCEINLINE bool GetDisableGameplay() const { return bDisableGameplay; }
 	
 	FVector GetHitTarget() const;
 };

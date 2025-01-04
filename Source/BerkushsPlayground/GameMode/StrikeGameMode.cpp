@@ -7,6 +7,11 @@
 #include "Kismet/GameplayStatics.h"
 #include "BerkushsPlayground/PlayerState/StrikePlayerState.h"
 
+namespace MatchState
+{
+	const FName Cooldown = FName("Cooldown"); // Unreal'in yaptigi gibi yaptik, aslinda externe falan hic gerek yok
+}
+
 AStrikeGameMode::AStrikeGameMode()
 {
 	bDelayedStart = true;
@@ -31,13 +36,29 @@ void AStrikeGameMode::Tick(float DeltaSeconds)
 			StartMatch();
 		}
 	}
+	else if (MatchState == MatchState::InProgress)
+	{
+		CountdownTime = WarmupTime + MatchTime - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+		if (CountdownTime <= 0.f)
+		{
+			SetMatchState(MatchState::Cooldown);
+		}
+	}
+	else if (MatchState == MatchState::Cooldown)
+	{
+		CountdownTime = WarmupTime + MatchTime + CooldownTime - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+		if (CountdownTime <= 0.f)
+		{
+			RestartGame(); //Reset level daha mi mantikli sanki //btw server travel sadece buildli oyunlarda calisiyormus ya da launch game dicen //btw seamlessi lobbyde cagirdik burada ihtiyacimiz var mi
+		}
+	}
 }
 
 void AStrikeGameMode::OnMatchStateSet()
 {
 	Super::OnMatchStateSet();
 
-	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; It++) //Su iteratorlar ne ogrenmem lazim bi ara
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It) //Su iteratorlar ne ogrenmem lazim bi ara
 	{
 		AStrikePlayerController* StrikePlayer = Cast<AStrikePlayerController>(*It);
 		if (StrikePlayer)
