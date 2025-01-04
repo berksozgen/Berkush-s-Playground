@@ -2,6 +2,7 @@
 
 #include "StrikeGameMode.h"
 #include "BerkushsPlayground/Character/StrikeCharacter.h"
+#include "BerkushsPlayground/GameState/StrikeGameState.h"
 #include "BerkushsPlayground/PlayerController/StrikePlayerController.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
@@ -74,14 +75,19 @@ void AStrikeGameMode::PlayerEliminated(AStrikeCharacter* ElimmedCharacter,
 	AStrikePlayerState* AttackerPlayerState = AttackerController ? Cast<AStrikePlayerState>(AttackerController->PlayerState/*niye get player state kullanmadik ki*/) : nullptr;
 	AStrikePlayerState* VictimPlayerState = VictimController ? Cast<AStrikePlayerState>(VictimController->PlayerState) : nullptr;
 
-	if (AttackerPlayerState && AttackerPlayerState != VictimPlayerState)
+	AStrikeGameState* StrikeGameState = GetGameState<AStrikeGameState>();
+
+	if (AttackerPlayerState && AttackerPlayerState != VictimPlayerState && StrikeGameState)
 	{
 		AttackerPlayerState->AddToScore(14.07f);
 		AttackerPlayerState->AddToKills(1);
+		StrikeGameState->UpdateTopScore(AttackerPlayerState);
 	}
 	if (VictimPlayerState)
 	{
 		VictimPlayerState->AddToDeaths(1);
+		if (VictimPlayerState == AttackerPlayerState) VictimPlayerState->AddToScore(-14.07f);
+		else VictimPlayerState->AddToScore(-7.14f);
 	}
 	
 	if (ElimmedCharacter) ElimmedCharacter->Elim();

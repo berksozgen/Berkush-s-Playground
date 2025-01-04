@@ -101,8 +101,9 @@ void AStrikeCharacter::BeginPlay()
 void AStrikeCharacter::Destroyed()
 {
 	Super::Destroyed();
-
+	
 	if (ElimBotComponent) ElimBotComponent->DestroyComponent();
+	//evet hatasini anladi, gamemodu cagiriyor burda, inprogressde degilse ona gore cekiyor, dunyanin en salakca isi bence btw
 	//if (Combat && Combat->EquippedWeapon) // bunu da disable input olan sectionda yapti anlamadim valla olunce silah destroy olursa komik olur //komik olmuyormus bu adamin eklicegi vari skm
 	//{
 		//Combat->EquippedWeapon->Destroy();
@@ -528,6 +529,7 @@ void AStrikeCharacter::Multicast_Elim_Implementation()
 	StartDissolve(); //Bunu if icine atsam mi acaba
 	//Disable Character Movement
 	bDisableGameplay = true;
+	if (Combat) Combat->FireButtonPressed(false); //cok da onemli degil bence
 	//Disable collision
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);

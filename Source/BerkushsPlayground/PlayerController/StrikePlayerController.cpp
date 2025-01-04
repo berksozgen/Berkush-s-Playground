@@ -8,7 +8,9 @@
 #include "BerkushsPlayground/Character/StrikeCharacter.h"
 #include "Net/UnrealNetwork.h"
 #include "BerkushsPlayground/GameMode/StrikeGameMode.h"
+#include "BerkushsPlayground/GameState/StrikeGameState.h"
 #include "BerkushsPlayground/HUD/Announcement.h"
+#include "BerkushsPlayground/PlayerState/StrikePlayerState.h"
 #include "BerkushsPlayground/StrikeComponents/CombatComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -368,7 +370,38 @@ void AStrikePlayerController::HandleCooldown()
 			StrikeHUD->Announcement->SetVisibility(ESlateVisibility::Visible);
 			FString AnnouncementText("New Match Starts In:");
 			StrikeHUD->Announcement->AnnouncementText->SetText(FText::FromString(AnnouncementText));
-			StrikeHUD->Announcement->InfoText->SetText(FText());
+
+			AStrikeGameState* StrikeGameState = Cast<AStrikeGameState>(UGameplayStatics::GetGameState(this));
+			AStrikePlayerState* StrikePlayerState = GetPlayerState<AStrikePlayerState>();
+			FString InfoTextString(TEXT(""));
+			if (StrikeGameState && StrikePlayerState)
+			{
+				TArray<AStrikePlayerState*> TopPlayers = StrikeGameState->TopScoringPlayers;
+				if (TopPlayers.Num() == 0)
+				{
+					InfoTextString = FString("There is no winner!");
+				}
+				else if (TopPlayers.Num() == 1)
+				{
+					if (TopPlayers[0] == StrikePlayerState)
+					{
+						InfoTextString = FString("You are the Winner!");
+					}
+					else
+					{
+						InfoTextString = FString::Printf(TEXT("Winner: \n%s!"), *TopPlayers[0]->GetPlayerName());
+					}
+				}
+				else if (TopPlayers.Num() > 1) //niye direkt else demedik ki
+				{
+					InfoTextString = FString("Players tied for the win: \n");
+					for (auto TiedPlayer : TopPlayers)
+					{
+						InfoTextString.Append(FString::Printf(TEXT("%s \n"), *TiedPlayer->GetPlayerName()));
+					}
+				}
+			}
+			StrikeHUD->Announcement->InfoText->SetText(FText::FromString(InfoTextString));
 		}
 	}
 	AStrikeCharacter* StrikeCharacter = Cast<AStrikeCharacter>(GetPawn());
