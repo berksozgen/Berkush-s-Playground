@@ -33,6 +33,20 @@ void AStrikeGameMode::Tick(float DeltaSeconds)
 	}
 }
 
+void AStrikeGameMode::OnMatchStateSet()
+{
+	Super::OnMatchStateSet();
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; It++) //Su iteratorlar ne ogrenmem lazim bi ara
+	{
+		AStrikePlayerController* StrikePlayer = Cast<AStrikePlayerController>(*It);
+		if (StrikePlayer)
+		{
+			StrikePlayer->OnMatchStateSet(MatchState);	
+		}
+	}
+}
+
 void AStrikeGameMode::PlayerEliminated(AStrikeCharacter* ElimmedCharacter,
                                        AStrikePlayerController* VictimController, AStrikePlayerController* AttackerController)
 {

@@ -9,8 +9,6 @@
 void AStrikeHUD::BeginPlay()
 {
 	Super::BeginPlay();
-
-	AddCharacterOverlay();
 }
 
 void AStrikeHUD::AddCharacterOverlay()

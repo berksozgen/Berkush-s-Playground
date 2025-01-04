@@ -6,6 +6,8 @@
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "BerkushsPlayground/Character/StrikeCharacter.h"
+#include "Net/UnrealNetwork.h"
+#include "BerkushsPlayground/GameMode/StrikeGameMode.h"
 
 void AStrikePlayerController::BeginPlay()
 {
@@ -14,12 +16,19 @@ void AStrikePlayerController::BeginPlay()
 	 StrikeHUD = Cast<AStrikeHUD>(GetHUD());
 }
 
+void AStrikePlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AStrikePlayerController, MatchState);
+}
+
 void AStrikePlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	SetHUDTime();
 	CheckTimeSync(DeltaTime);
+	PollInit();
 }
 
 void AStrikePlayerController::CheckTimeSync(float DeltaTime) //bunu timer handle a alabilirim belki
@@ -57,6 +66,12 @@ void AStrikePlayerController::SetHUDHealth(float Health, float MaxHealth)
 		FString HealthText = FString::Printf(TEXT("%c%d"), '%', FMath::CeilToInt(100.f * HealthPercent));
 		StrikeHUD->CharacterOverlay->HealthText->SetText(FText::FromString(HealthText));
 	}
+	else
+	{
+		bInitializeCharacterOverlay = true;
+		HUDHealth = Health;
+		HUDMaxHealth = MaxHealth;
+	}
 }
 
 void AStrikePlayerController::SetHUDScore(float Score)
@@ -69,6 +84,11 @@ void AStrikePlayerController::SetHUDScore(float Score)
 	{
 		FString ScoreText = FString::Printf(TEXT("%d"), FMath::FloorToInt(Score));
 		StrikeHUD->CharacterOverlay->ScoreAmount->SetText(FText::FromString(ScoreText));
+	}
+	else
+	{
+		bInitializeCharacterOverlay = true;
+		HUDScore = Score;
 	}
 }
 
@@ -83,6 +103,11 @@ void AStrikePlayerController::SetHUDKills(int32 Kills)
 		FString KillsText = FString::Printf(TEXT("%d"), Kills);
 		StrikeHUD->CharacterOverlay->KillsAmount->SetText(FText::FromString(KillsText));
 	}
+	else
+	{
+		bInitializeCharacterOverlay = true;
+		HUDKills = Kills;
+	}
 }
 
 void AStrikePlayerController::SetHUDDeaths(int32 Deaths)
@@ -95,6 +120,11 @@ void AStrikePlayerController::SetHUDDeaths(int32 Deaths)
 	{
 		FString DeathsText = FString::Printf(TEXT("%d"), Deaths);
 		StrikeHUD->CharacterOverlay->DeathsAmount->SetText(FText::FromString(DeathsText));
+	}
+	else
+	{
+		bInitializeCharacterOverlay = true;
+		HUDDeaths = Deaths;
 	}
 }
 
@@ -173,6 +203,24 @@ void AStrikePlayerController::SetHUDTime()
 	CountdownInt = SecondsLeft;
 }
 
+void AStrikePlayerController::PollInit()
+{
+	if (CharacterOverlay == nullptr)
+	{
+		if (StrikeHUD && StrikeHUD->CharacterOverlay)
+		{
+			CharacterOverlay = StrikeHUD->CharacterOverlay;
+			if (CharacterOverlay)
+			{
+				SetHUDHealth(HUDHealth,HUDMaxHealth);
+				SetHUDScore(HUDScore);
+				SetHUDKills(HUDKills);
+				SetHUDDeaths(HUDDeaths);
+			}
+		}
+	}
+}
+
 void AStrikePlayerController::Server_RequestServerTime_Implementation(float TimeOfClientRequest)
 {
 	float ServerTimeOfReceipt = GetWorld()->GetTimeSeconds();
@@ -198,5 +246,31 @@ void AStrikePlayerController::ReceivedPlayer()
 	if (IsLocalController())
 	{
 		Server_RequestServerTime(GetWorld()->GetTimeSeconds());
+	}
+}
+
+void AStrikePlayerController::OnMatchStateSet(FName State) //just server because we call this function called from gamemode
+{
+	MatchState = State;
+	
+	if (MatchState == MatchState::InProgress)
+	{
+		StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
+		if (StrikeHUD)
+		{
+			StrikeHUD->AddCharacterOverlay();
+		}
+	}
+}
+
+void AStrikePlayerController::OnRep_MatchState()
+{
+	if (MatchState == MatchState::InProgress)
+	{
+		StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
+		if (StrikeHUD)
+		{
+			StrikeHUD->AddCharacterOverlay();
+		}
 	}
 }
