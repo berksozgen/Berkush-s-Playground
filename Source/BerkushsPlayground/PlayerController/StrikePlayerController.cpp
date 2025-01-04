@@ -14,6 +14,24 @@ void AStrikePlayerController::BeginPlay()
 	 StrikeHUD = Cast<AStrikeHUD>(GetHUD());
 }
 
+void AStrikePlayerController::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	SetHUDTime();
+	CheckTimeSync(DeltaTime);
+}
+
+void AStrikePlayerController::CheckTimeSync(float DeltaTime) //bunu timer handle a alabilirim belki
+{
+	TimeSyncRunningTime += DeltaTime;
+	if (IsLocalController() && TimeSyncRunningTime > TimeSyncFrequency)
+	{
+		Server_RequestServerTime(GetWorld()->GetTimeSeconds());
+		TimeSyncRunningTime = 0.f;
+	}
+}
+
 void AStrikePlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
@@ -127,5 +145,58 @@ void AStrikePlayerController::SetHUDWeaponAmmoType(FString AmmoType)
 	if (bHUDValid)
 	{
 		StrikeHUD->CharacterOverlay->WeaponAmmoType->SetText(FText::FromString(AmmoType));
+	}
+}
+
+void AStrikePlayerController::SetHUDMatchCountdown(float CountdownTime)
+{
+	StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
+
+	bool bHUDValid = StrikeHUD && StrikeHUD->CharacterOverlay && StrikeHUD->CharacterOverlay->MatchCountdownText; //siralama onemli btw
+	
+	if (bHUDValid)
+	{
+		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
+		int32 Seconds = CountdownTime - Minutes * 60;
+		FString CountDownText = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds); //%02d 1 girdisini 01 yapiyor misal
+		StrikeHUD->CharacterOverlay->MatchCountdownText->SetText(FText::FromString(CountDownText));
+	}
+}
+
+void AStrikePlayerController::SetHUDTime()
+{
+	uint32 SecondsLeft = FMath::CeilToInt(MatchTime - GetServerTime());
+	if (CountdownInt != SecondsLeft)
+	{
+		SetHUDMatchCountdown(MatchTime - GetServerTime()); // niye seconds left yapistirmadik ki direkt
+	}
+	CountdownInt = SecondsLeft;
+}
+
+void AStrikePlayerController::Server_RequestServerTime_Implementation(float TimeOfClientRequest)
+{
+	float ServerTimeOfReceipt = GetWorld()->GetTimeSeconds();
+	Client_ReportServerTime(TimeOfClientRequest, ServerTimeOfReceipt);
+}
+
+void AStrikePlayerController::Client_ReportServerTime_Implementation(float TimeOfClientRequest,
+	float TimeServerReceivedClientRequest)
+{
+	float RoundTripTime = GetWorld()->GetTimeSeconds() - TimeOfClientRequest;
+	float CurrentServerTime = TimeServerReceivedClientRequest + (0.5f * RoundTripTime);
+	ClientServerDelta = CurrentServerTime - GetWorld()->GetTimeSeconds();
+}
+
+float AStrikePlayerController::GetServerTime()
+{
+	return GetWorld()->GetTimeSeconds() + (HasAuthority()) ? 0.f : ClientServerDelta; //Adam has authority kaldirmis
+}
+
+void AStrikePlayerController::ReceivedPlayer()
+{
+	Super::ReceivedPlayer();
+	if (IsLocalController())
+	{
+		Server_RequestServerTime(GetWorld()->GetTimeSeconds());
 	}
 }

@@ -7,6 +7,32 @@
 #include "Kismet/GameplayStatics.h"
 #include "BerkushsPlayground/PlayerState/StrikePlayerState.h"
 
+AStrikeGameMode::AStrikeGameMode()
+{
+	bDelayedStart = true;
+}
+
+void AStrikeGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+
+	LevelStartingTime = GetWorld()->GetTimeSeconds();
+}
+
+void AStrikeGameMode::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (MatchState == MatchState::WaitingToStart)
+	{
+		CountdownTime = WarmupTime - GetWorld()->GetTimeSeconds() + LevelStartingTime; //su mantik sacma geldi btw yarin tekrar bakayim
+		if (CountdownTime <= 0.f)
+		{
+			StartMatch();
+		}
+	}
+}
+
 void AStrikeGameMode::PlayerEliminated(AStrikeCharacter* ElimmedCharacter,
                                        AStrikePlayerController* VictimController, AStrikePlayerController* AttackerController)
 {
