@@ -16,7 +16,7 @@ void AStrikeGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	LevelStartingTime = GetWorld()->GetTimeSeconds();
+	LevelStartingTime = GetWorld()->GetTimeSeconds(); //su mantik sacma geldi btw//anladim bunun mantigi oyun acildigindan beri unreal sure tutuyormus, editorde direkt game mapi acinca 0 oluyor tabi
 }
 
 void AStrikeGameMode::Tick(float DeltaSeconds)
@@ -25,7 +25,7 @@ void AStrikeGameMode::Tick(float DeltaSeconds)
 
 	if (MatchState == MatchState::WaitingToStart)
 	{
-		CountdownTime = WarmupTime - GetWorld()->GetTimeSeconds() + LevelStartingTime; //su mantik sacma geldi btw yarin tekrar bakayim
+		CountdownTime = WarmupTime - GetWorld()->GetTimeSeconds() + LevelStartingTime;
 		if (CountdownTime <= 0.f)
 		{
 			StartMatch();

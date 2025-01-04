@@ -212,6 +212,10 @@ private:
 	UPROPERTY()
 	class AStrikePlayerState* StrikePlayerState;
 
+	//deneme
+	UPROPERTY(Replicated)
+	bool bIsCurrentlyAlive = true;
+
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped();

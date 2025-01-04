@@ -23,7 +23,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Time")
 	float WarmupTime = 10.f;
 
-	float LevelStartingTime = 0;
+	float LevelStartingTime = 0.f;
 
 protected:
 	virtual void BeginPlay() override;

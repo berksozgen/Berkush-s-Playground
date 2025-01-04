@@ -189,7 +189,7 @@ void AStrikePlayerController::Client_ReportServerTime_Implementation(float TimeO
 
 float AStrikePlayerController::GetServerTime()
 {
-	return GetWorld()->GetTimeSeconds() + (HasAuthority()) ? 0.f : ClientServerDelta; //Adam has authority kaldirmis
+	return GetWorld()->GetTimeSeconds() + (HasAuthority() ? 0.f : ClientServerDelta); //Adam has authority kaldirmis
 }
 
 void AStrikePlayerController::ReceivedPlayer()

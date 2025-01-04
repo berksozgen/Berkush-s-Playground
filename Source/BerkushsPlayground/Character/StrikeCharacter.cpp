@@ -74,6 +74,7 @@ void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	DOREPLIFETIME_CONDITION(AStrikeCharacter, OverlappingWeapon, COND_OwnerOnly);
 	//DOREPLIFETIME(AStrikeCharacter, OverlappingWeapon); //Boyle yapinca biri silah ustunde durunca herkeste gozukuyor
 	DOREPLIFETIME(AStrikeCharacter, Health);
+	DOREPLIFETIME(AStrikeCharacter, bIsCurrentlyAlive); //bu da deneme
 }
 
 void AStrikeCharacter::PostInitializeComponents()
@@ -384,12 +385,14 @@ void AStrikeCharacter::Server_EquipButtonPressed_Implementation() { if (Combat) 
 void AStrikeCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
 	class AController* InstigatorController, AActor* DamageCauser) /*Network event mi emin degilim*/
 {
+	if(!bIsCurrentlyAlive) return; //Havuza girince loopa giriyo
 	Health = FMath::Clamp(Health-Damage, 0.0f, MaxHealth);
 	UpdateHUDHealth(); //niye bunu ikisinde de cagiriyoruz, tamam repler serverde calismyor da owner degilse anlami ne
 	PlayHitReactMontage();
 
 	if (Health == 0.f)
 	{
+		bIsCurrentlyAlive = false; //bu da denemenin devami
 		AStrikeGameMode* StrikeGameMode = GetWorld()->GetAuthGameMode<AStrikeGameMode>();
 		if (StrikeGameMode)
 		{
