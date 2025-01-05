@@ -214,7 +214,7 @@ void UCombatComponent::Fire()
 	}
 }
 
-void UCombatComponent::FireButtonPressed(bool bPressed) { if ((bFireButtonPressed = bPressed)) Fire(); }
+void UCombatComponent::FireButtonPressed(bool bPressed) { bFireButtonPressed = bPressed; if (bFireButtonPressed) Fire(); } //msvc agladi buna if ((bFireButtonPressed = bPressed)) Fire();
 
 void UCombatComponent::StartFireTimer()
 {
