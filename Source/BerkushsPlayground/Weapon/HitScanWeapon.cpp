@@ -5,6 +5,8 @@
 #include "BerkushsPlayground/Character/StrikeCharacter.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Sound/SoundCue.h"
 
 void AHitScanWeapon::Fire(const FVector& HitTarget)
 {
@@ -12,8 +14,7 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
 
 	APawn* OwnerPawn = Cast<APawn>(GetOwner());
 	if (OwnerPawn == nullptr) return;
-	AController* InstigatorController = OwnerPawn->GetController();
-	if (InstigatorController == nullptr) return; //adam alttaki iffe yazdi da ne gerek var
+	AController* InstigatorController = OwnerPawn->GetController(); //Buna nullcheck atmama nedenimiz, simulated proxylerde sadece kendi controllari var
 
 	const USkeletalMeshSocket* MuzzleFlashSocket = GetWeaponMesh()->GetSocketByName("MuzzleFlash");
 	if (MuzzleFlashSocket)
@@ -32,20 +33,19 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
 				End,
 				ECollisionChannel::ECC_Visibility);
 
+			FVector BeamEnd = End;
 			if (FireHit.bBlockingHit)
 			{
+				BeamEnd = FireHit.ImpactPoint;
 				AStrikeCharacter* StrikeCharacter = Cast<AStrikeCharacter>(FireHit.GetActor());
-				if (StrikeCharacter)
+				if (StrikeCharacter && HasAuthority() && InstigatorController)
 				{
-					if (HasAuthority())
-					{
-						UGameplayStatics::ApplyDamage(
-							StrikeCharacter,
-							Damage,
-							InstigatorController,
-							this,
-							UDamageType::StaticClass());
-					}
+					UGameplayStatics::ApplyDamage(
+						StrikeCharacter,
+						Damage,
+						InstigatorController,
+						this,
+						UDamageType::StaticClass());
 				}
 				if (ImpactParticles)
 				{
@@ -55,7 +55,37 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
 						FireHit.ImpactPoint,
 						FireHit.ImpactNormal.Rotation());
 				}
+				if (HitSound)
+				{
+					UGameplayStatics::PlaySoundAtLocation(
+						this,
+						HitSound,
+						FireHit.ImpactPoint);
+				}
 			}
+			if (BeamParticles)
+			{
+				UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
+					World,
+					BeamParticles,
+					SocketTransform);
+				
+				if (Beam) Beam->SetVectorParameter(FName("Target"), BeamEnd);
+			}
+		}
+		if (MuzzleFlash)
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(
+				World,
+				MuzzleFlash,
+				SocketTransform);
+		}
+		if (FireSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(
+				this,
+				FireSound,
+				GetActorLocation());
 		}
 	}
 }

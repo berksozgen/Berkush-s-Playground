@@ -100,12 +100,23 @@ void AWeapon::SetWeaponState(EWeaponState State)
 		WeaponMesh->SetSimulatePhysics(false);
 		WeaponMesh->SetEnableGravity(false);
 		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		if (WeaponType == EWeaponType::EWT_SubMachineGun) //Sadece smgde kayis var diye 
+		{
+			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			WeaponMesh->SetEnableGravity(true);
+			WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		}
 		break;
 	case EWeaponState::EWS_Dropped:
 		if (HasAuthority())	AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		WeaponMesh->SetSimulatePhysics(true);
 		WeaponMesh->SetEnableGravity(true); //aslinda normalde enable geliyor ama anlasilir kod olsu diye actik tekrar
 		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		//Bu da SMG ayarlari bozuyor diye, bir kayis icin ugrastigim seye bak
+		WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+		WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+		WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+		//
 		break;
 	}
 }
@@ -119,12 +130,23 @@ void AWeapon::OnRep_WeaponState()
 		WeaponMesh->SetSimulatePhysics(false);
 		WeaponMesh->SetEnableGravity(false);
 		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		if (WeaponType == EWeaponType::EWT_SubMachineGun) //Sadece smgde kayis var diye 
+		{
+			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			WeaponMesh->SetEnableGravity(true);
+			WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		}
 		break;
 	case EWeaponState::EWS_Dropped:
 		//ShowPickupWidget(true); //adam bunu eklemedi de ben eklim bari// galba gerek yok buna
 		WeaponMesh->SetSimulatePhysics(true);
 		WeaponMesh->SetEnableGravity(true);
 		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		//Bu da SMG ayarlari bozuyor diye, bir kayis icin ugrastigim seye bak
+		WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+		WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+		WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+		//
 		break;
 	}
 }
