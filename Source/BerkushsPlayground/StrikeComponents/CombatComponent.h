@@ -121,18 +121,16 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	int32 StartingAssaultRifleAmmo = 60;
-
 	UPROPERTY(EditAnywhere)
 	int32 StartingRocketAmmo = 1;
-
 	UPROPERTY(EditAnywhere)
 	int32 StartingPistolAmmo = 30;
-
 	UPROPERTY(EditAnywhere)
 	int32 StartingSubMachineGunAmmo = 40;
-
 	UPROPERTY(EditAnywhere)
 	int32 StartingShotgunAmmo = 10;
+	UPROPERTY(EditAnywhere)
+	int32 StartingSniperRifleAmmo = 10;
 	
 	void InitializeCarriedAmmo();
 

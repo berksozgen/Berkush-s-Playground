@@ -184,6 +184,9 @@ void AStrikeCharacter::PlayReloadMontage()
 		case EWeaponType::EWT_Shotgun:
 			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
 			break;
+		case EWeaponType::EWT_SniperRifle:
+			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
+			break;
 		}
 		
 		AnimInstance->Montage_JumpToSection(SectionName);
@@ -554,6 +557,7 @@ void AStrikeCharacter::Multicast_Elim_Implementation()
 		ElimBotComponent = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ElimBotEffect, ElimBotSpawnPoint, GetActorRotation());
 	}
 	if (ElimBotSound) UGameplayStatics::PlaySoundAtLocation(this, ElimBotSound, GetActorLocation());
+	if (IsLocallyControlled() && Combat && Combat->bAiming && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponType() == EWeaponType::EWT_SniperRifle) ShowSniperScopeWidget(false); //local boola bagladi da gerek yok btw
 }
 
 void AStrikeCharacter::StartDissolve()
