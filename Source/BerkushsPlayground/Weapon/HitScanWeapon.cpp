@@ -7,6 +7,11 @@
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Sound/SoundCue.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "WeaponTypes.h"
+//debug
+#include "DrawDebugHelpers.h"
+//
 
 void AHitScanWeapon::Fire(const FVector& HitTarget)
 {
@@ -88,4 +93,21 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
 				GetActorLocation());
 		}
 	}
+}
+
+FVector AHitScanWeapon::TraceEndWithScatter(const FVector& TraceStart, const FVector& HitTarget)
+{
+	FVector ToTargetNormalized = (HitTarget - TraceStart).GetSafeNormal();
+	FVector SphereCenter = TraceStart + ToTargetNormalized * DistanceToSphere;
+	FVector RandomVector = UKismetMathLibrary::RandomUnitVector() * FMath::FRandRange(0.f, SphereRadius);
+	FVector EndLocation = SphereCenter + RandomVector;
+	FVector ToEndLocation = EndLocation - TraceStart;
+	
+	//Debug
+	DrawDebugSphere(GetWorld(), SphereCenter, SphereRadius, 12, FColor::Red, true);
+	DrawDebugSphere(GetWorld(), EndLocation, 4.f, 12, FColor::Orange, true);
+	DrawDebugLine(GetWorld(), TraceStart, FVector(TraceStart + EndLocation * TRACE_LENGHT / ToEndLocation.Size()), FColor::Yellow, true);
+	//
+
+	return FVector(TraceStart + EndLocation * TRACE_LENGHT / ToEndLocation.Size());
 }

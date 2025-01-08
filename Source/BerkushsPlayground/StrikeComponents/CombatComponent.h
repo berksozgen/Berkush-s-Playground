@@ -9,8 +9,6 @@
 #include "BerkushsPlayground/StrikeTypes/CombatState.h"
 #include "CombatComponent.generated.h"
 
-#define TRACE_LENGHT 80'000.f
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BERKUSHSPLAYGROUND_API UCombatComponent : public UActorComponent
 {
@@ -132,6 +130,9 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	int32 StartingSubMachineGunAmmo = 40;
+
+	UPROPERTY(EditAnywhere)
+	int32 StartingShotgunAmmo = 10;
 	
 	void InitializeCarriedAmmo();
 

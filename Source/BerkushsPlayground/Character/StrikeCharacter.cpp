@@ -181,6 +181,9 @@ void AStrikeCharacter::PlayReloadMontage()
 		case EWeaponType::EWT_SubMachineGun:
 			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
 			break;
+		case EWeaponType::EWT_Shotgun:
+			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
+			break;
 		}
 		
 		AnimInstance->Montage_JumpToSection(SectionName);
