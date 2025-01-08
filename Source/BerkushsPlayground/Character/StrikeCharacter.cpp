@@ -172,6 +172,9 @@ void AStrikeCharacter::PlayReloadMontage()
 		case EWeaponType::EWT_AssaultRifle:
 			SectionName = FName("Rifle");
 			break;
+		case EWeaponType::EWT_RocketLauncher:
+			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
+			break;
 		}
 
 		AnimInstance->Montage_JumpToSection(SectionName);
@@ -529,6 +532,8 @@ void AStrikeCharacter::Multicast_Elim_Implementation()
 	StartDissolve(); //Bunu if icine atsam mi acaba
 	//Disable Character Movement
 	bDisableGameplay = true;
+	GetCharacterMovement()->DisableMovement(); //Bu da bDisableGameplayden sonra eklendi bir caresine bakayim
+	//
 	if (Combat) Combat->FireButtonPressed(false); //cok da onemli degil bence
 	//Disable collision
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);

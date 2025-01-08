@@ -349,7 +349,7 @@ void AStrikePlayerController::HandleMatchHasStarted()
 	StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
 	if (StrikeHUD)
 	{
-		StrikeHUD->AddCharacterOverlay();
+		if (StrikeHUD->CharacterOverlay == nullptr) StrikeHUD->AddCharacterOverlay();
 		if (StrikeHUD->Announcement)
 		{
 			StrikeHUD->Announcement->SetVisibility(ESlateVisibility::Hidden);

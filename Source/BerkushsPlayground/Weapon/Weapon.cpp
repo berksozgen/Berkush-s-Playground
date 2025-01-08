@@ -17,7 +17,8 @@ AWeapon::AWeapon()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true; //Eger bu false olsaydi, weapon sinifimiz gene her makinede calisacakti ama her clientin uzerinde hasauthoritysi olacakti, biz mermi mekanigi sadece serverde calissin istiyoruz o yuzden replike ediyoruz bunu
-
+	SetReplicateMovement(true); //Bunu acma nedenizim eleman falan havada olurse dustugu yer ile serverdeke yer birbiriyle uysun diye
+	
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	//WeaponMesh->SetupAttachment(RootComponent);
 	SetRootComponent(WeaponMesh);
@@ -33,7 +34,6 @@ AWeapon::AWeapon()
 
 	PickupWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PickupWidget"));
 	PickupWidget->SetupAttachment(RootComponent);
-
 }
 
 void AWeapon::BeginPlay()

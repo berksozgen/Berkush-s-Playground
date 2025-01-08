@@ -9,7 +9,7 @@ public class BerkushsPlayground : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] { "BerkushOnline" });
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "Paper2D", "OnlineSubsystem", "OnlineSubsystemSteam"});
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "Paper2D", "Niagara", "OnlineSubsystem", "OnlineSubsystemSteam"});
 		
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
