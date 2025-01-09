@@ -26,6 +26,11 @@ public:
 	void FinishReloading();
 	
 	void FireButtonPressed(bool bPressed);
+
+	UFUNCTION(BlueprintCallable)
+	void ShotgunShellReload();
+
+	void JumpToShotgunEnd();
 protected:
 	virtual void BeginPlay() override;
 	void SetAiming(bool bIsAiming);
@@ -72,10 +77,8 @@ private:
 	float AimWalkSpeed;
 
 	bool bFireButtonPressed;
-
-	/*
-	 * HUD and Crosshairs
-	 */
+	
+	//HUD and Crosshairs
 	float CrosshairVelocityFactor;
 	float CrosshairInAirFactor;
 	float CrosshairAimFactor;
@@ -86,10 +89,7 @@ private:
 	//
 	FVector HitTarget;
 
-	//
 	//Aiming And FOV
-	//
-
 	//Field of view when not aiming; set to the camera's base FOV in BeginPlay
 	float DefaultFOV;
 	float CurrentFOV;
@@ -99,10 +99,8 @@ private:
 	float ZoomInterpSpeed = 20.f;
 
 	void InterpFOV(float DeltaTime);
-
-	//
+	
 	//Automatic fire
-	//
 	FTimerHandle FireTimer;
 	bool bCanFire = true;
 	
@@ -142,6 +140,7 @@ private:
 	void OnRep_CombatState();
 
 	void UpdateAmmoValues();
+	void UpdateShotgunAmmoValues();
 
 	void UpdateWeaponAmmoTypeText(EWeaponType WeaponType);
 public:	

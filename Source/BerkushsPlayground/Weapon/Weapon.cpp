@@ -12,6 +12,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "BerkushsPlayground/PlayerController/StrikePlayerController.h"
+#include "BerkushsPlayground/StrikeComponents/CombatComponent.h"
 
 AWeapon::AWeapon()
 {
@@ -207,6 +208,11 @@ void AWeapon::SpendRound() //Server Only
 
 void AWeapon::OnRep_Ammo() //Clients only
 {
+	StrikeOwnerCharacter = StrikeOwnerCharacter == nullptr ? Cast<AStrikeCharacter>(GetOwner()) : StrikeOwnerCharacter; //Bunu sonradan eklemis galina adam
+	if (StrikeOwnerCharacter && StrikeOwnerCharacter->GetCombat() && IsFull())
+	{
+		StrikeOwnerCharacter->GetCombat()->JumpToShotgunEnd();
+	}
 	SetHUDAmmo();
 }
 
@@ -243,4 +249,9 @@ void AWeapon::AddAmmo(int32 AmmoToAdd)
 bool AWeapon::IsEmpty()
 {
 	return Ammo <= 0;
+}
+
+bool AWeapon::IsFull()
+{
+	return Ammo == MagCapacity;
 }

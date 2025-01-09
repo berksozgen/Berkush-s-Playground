@@ -244,7 +244,14 @@ void UCombatComponent::Server_Fire_Implementation(const FVector_NetQuantize& Tra
 void UCombatComponent::Multicast_Fire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
 	if (EquippedWeapon == nullptr) return;
-	
+
+	if (Character && CombatState == ECombatState::ECS_Reloading && EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Shotgun)
+	{
+		Character->PlayFireMontage(bAiming);
+		EquippedWeapon->Fire(TraceHitTarget);
+		CombatState = ECombatState::ECS_Unoccupied;
+		return; //else if te cakabilirdim gerci bu da shotgun eceptionu
+	}
 	if (Character && CombatState == ECombatState::ECS_Unoccupied)
 	{
 		Character->PlayFireMontage(bAiming);
@@ -295,6 +302,14 @@ void UCombatComponent::Reload()
 	}
 }
 
+void UCombatComponent::ShotgunShellReload()
+{
+	if (Character && Character->HasAuthority())
+	{
+		UpdateShotgunAmmoValues();
+	}
+}
+
 void UCombatComponent::Server_Reload_Implementation()
 {
 	if (Character == nullptr) return;//Mermiyi burda da checklesem iyi olabilir
@@ -334,6 +349,37 @@ void UCombatComponent::UpdateAmmoValues()
 	EquippedWeapon->AddAmmo(-ReloadAmount);
 }
 
+void UCombatComponent::UpdateShotgunAmmoValues()
+{
+	if (Character == nullptr || EquippedWeapon == nullptr) return;
+	
+	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType())) //aslinda hardcoded shotgun yapabilirim buraya da,revolver eklersem ayni mantigi kullancam
+	{
+		CarriedAmmoMap[EquippedWeapon->GetWeaponType()] -= 1;
+		CarriedAmmo = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
+	}
+	Controller = Controller == nullptr ? Cast<AStrikePlayerController>(Character->Controller) : Controller;
+	if (Controller)
+	{
+		Controller->SetHUDCarriedAmmo(CarriedAmmo);
+	}
+	EquippedWeapon->AddAmmo(-1);
+	bCanFire = true;
+	if (EquippedWeapon->IsFull() || CarriedAmmo == 0)
+	{
+		JumpToShotgunEnd(); //bunu clientlerde gostermek icin weapon sinifinin on_rep ammosunda yapiyoruz aklima yatmadi pek
+	}
+}
+
+void UCombatComponent::JumpToShotgunEnd()
+{
+	UAnimInstance* AnimInstance = Character->GetMesh()->GetAnimInstance();
+	if (AnimInstance && Character->GetReloadMontage())
+	{
+		AnimInstance->Montage_JumpToSection(FName("ShotgunEnd"));
+	}
+}
+
 void UCombatComponent::UpdateWeaponAmmoTypeText(EWeaponType WeaponType)
 {
 	if (Controller == nullptr) return;
@@ -349,24 +395,20 @@ void UCombatComponent::UpdateWeaponAmmoTypeText(EWeaponType WeaponType)
 	case EWeaponType::EWT_SniperRifle:
 		WeaponTypeString = FString(TEXT("Sniper Rifle"));
 		break;
+	case EWeaponType::EWT_RocketLauncher:
+		WeaponTypeString = FString(TEXT("Rocket Launcher"));
+		break;
+	case EWeaponType::EWT_SubMachineGun:
+		WeaponTypeString = FString(TEXT("SubMachine Gun"));
+		break;
+	case EWeaponType::EWT_Shotgun:
+		WeaponTypeString = FString(TEXT("Shotgun"));
+		break;
+	case EWeaponType::EWT_GrenadeLauncher:
+		WeaponTypeString = FString(TEXT("Grenade Launcher"));
+		break;
 	}
 	Controller->SetHUDWeaponAmmoType(WeaponTypeString);
-}
-
-void UCombatComponent::OnRep_CombatState()
-{
-	switch (CombatState)
-	{
-		case ECombatState::ECS_Reloading:
-			HandleReload();
-		break;
-		case ECombatState::ECS_Unoccupied:
-			if (bFireButtonPressed)
-			{
-				Fire();
-			}
-		break;
-	}
 }
 
 void UCombatComponent::HandleReload()
@@ -388,6 +430,42 @@ int32 UCombatComponent::AmountToReload()
 	return 0;
 }
 
+bool UCombatComponent::CanFire()
+{
+	if (EquippedWeapon == nullptr) return false;
+	if (!EquippedWeapon->IsEmpty() && bCanFire && CombatState == ECombatState::ECS_Reloading && EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Shotgun) return true; //shotgun icin exceptioon moruk
+	return !EquippedWeapon->IsEmpty() && bCanFire && CombatState != ECombatState::ECS_Reloading/*esittir unoccupied dedi, sacma geldi*/;
+}
+
+void UCombatComponent::InitializeCarriedAmmo()
+{
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_AssaultRifle, StartingAssaultRifleAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_RocketLauncher, StartingRocketAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_Pistol, StartingPistolAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_SubMachineGun, StartingSubMachineGunAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_Shotgun, StartingShotgunAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_SniperRifle, StartingSniperRifleAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_GrenadeLauncher, StartingGrenadeLauncherAmmo);
+}
+
+#pragma region RepNotifies
+
+void UCombatComponent::OnRep_CombatState()
+{
+	switch (CombatState)
+	{
+	case ECombatState::ECS_Reloading:
+		HandleReload();
+		break;
+	case ECombatState::ECS_Unoccupied:
+		if (bFireButtonPressed)
+		{
+			Fire();
+		}
+		break;
+	}
+}
+
 void UCombatComponent::OnRep_EquippedWeapon()
 {
 	if (EquippedWeapon && Character)
@@ -402,12 +480,6 @@ void UCombatComponent::OnRep_EquippedWeapon()
 	}
 }
 
-bool UCombatComponent::CanFire()
-{
-	if (EquippedWeapon == nullptr) return false;
-	return !EquippedWeapon->IsEmpty() && bCanFire && CombatState != ECombatState::ECS_Reloading/*esittir unoccupied dedi, sacma geldi*/;
-}
-
 void UCombatComponent::OnRep_CarriedAmmo()
 {
 	Controller = Controller == nullptr ? Cast<AStrikePlayerController>(Character->Controller) : Controller;
@@ -415,15 +487,9 @@ void UCombatComponent::OnRep_CarriedAmmo()
 	{
 		Controller->SetHUDCarriedAmmo(CarriedAmmo);
 	}
+	bool bJumpToShotgunEnd = CombatState == ECombatState::ECS_Reloading &&
+		EquippedWeapon != nullptr && EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Shotgun &&
+			CarriedAmmo == 0;
+	if (bJumpToShotgunEnd) JumpToShotgunEnd();
 }
-
-void UCombatComponent::InitializeCarriedAmmo()
-{
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_AssaultRifle, StartingAssaultRifleAmmo);
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_RocketLauncher, StartingRocketAmmo);
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_Pistol, StartingPistolAmmo);
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_SubMachineGun, StartingSubMachineGunAmmo);
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_Shotgun, StartingShotgunAmmo);
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_SniperRifle, StartingSniperRifleAmmo);
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_GrenadeLauncher, StartingGrenadeLauncherAmmo);
-}
+#pragma endregion RepNotifies
