@@ -252,6 +252,23 @@ void AStrikePlayerController::SetHUDAnnouncementCountdown(float CountdownTime)
 	}
 }
 
+void AStrikePlayerController::SetHUDGrenades(int32 Grenades)
+{
+	StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
+
+	bool bHUDValid = StrikeHUD && StrikeHUD->CharacterOverlay && StrikeHUD->CharacterOverlay->GrenadesText; //siralama onemli btw
+	
+	if (bHUDValid)
+	{
+		FString GrenadesText = FString::Printf(TEXT("%d"), Grenades);
+		StrikeHUD->CharacterOverlay->GrenadesText->SetText(FText::FromString(GrenadesText));
+	}
+	else
+	{
+		HUDGrenades = Grenades;
+	}
+}
+
 void AStrikePlayerController::SetHUDTime()
 {
 	float TimeLeft = 0.f;
@@ -297,6 +314,9 @@ void AStrikePlayerController::PollInit()
 				SetHUDScore(HUDScore);
 				SetHUDKills(HUDKills);
 				SetHUDDeaths(HUDDeaths);
+				
+				AStrikeCharacter* StrikeCharacter = Cast<AStrikeCharacter>(GetPawn());
+				if (StrikeCharacter && StrikeCharacter->GetCombat()) SetHUDGrenades(StrikeCharacter->GetCombat()->GetGrenadesCount());
 			}
 		}
 	}

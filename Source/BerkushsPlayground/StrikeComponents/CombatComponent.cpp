@@ -14,8 +14,10 @@
 #include "TimerManager.h"
 //Debug Helpers
 #include "DrawDebugHelpers.h"
+#include "BerkushsPlayground/Weapon/Projectile.h"
 #include "Sound/SoundCue.h"
 
+#pragma region UnrealDefaults
 UCombatComponent::UCombatComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -32,6 +34,7 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	DOREPLIFETIME(UCombatComponent, bAiming);
 	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedAmmo, COND_OwnerOnly); //Diger clientler icin onemli degil bu
 	DOREPLIFETIME(UCombatComponent, CombatState);
+	DOREPLIFETIME(UCombatComponent, GrenadeCount); //buna niye condition koymadik
 }
 
 void UCombatComponent::BeginPlay()
@@ -68,6 +71,7 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 		InterpFOV(DeltaTime); //Aha bundan da
 	}
 }
+#pragma endregion UnrealDefaults
 
 #pragma region OwnerOnly
 void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
@@ -178,6 +182,40 @@ void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 		if (!TraceHitResult.bBlockingHit) TraceHitResult.ImpactPoint = End; //Adam havaya sikarsa diye
 	}
 }
+
+void UCombatComponent::UpdateWeaponAmmoTypeText(EWeaponType WeaponType)
+{
+	if (Controller == nullptr) return;
+	FString WeaponTypeString(TEXT(""));
+	switch(WeaponType)
+	{
+	case EWeaponType::EWT_AssaultRifle:
+		WeaponTypeString = FString(TEXT("Assault Rifle"));
+		break;
+	case EWeaponType::EWT_Pistol:
+		WeaponTypeString = FString(TEXT("Pistol"));
+		break;
+	case EWeaponType::EWT_SniperRifle:
+		WeaponTypeString = FString(TEXT("Sniper Rifle"));
+		break;
+	case EWeaponType::EWT_RocketLauncher:
+		WeaponTypeString = FString(TEXT("Rocket Launcher"));
+		break;
+	case EWeaponType::EWT_SubMachineGun:
+		WeaponTypeString = FString(TEXT("SubMachine Gun"));
+		break;
+	case EWeaponType::EWT_Shotgun:
+		WeaponTypeString = FString(TEXT("Shotgun"));
+		break;
+	case EWeaponType::EWT_GrenadeLauncher:
+		WeaponTypeString = FString(TEXT("Grenade Launcher"));
+		break;
+	default:
+		WeaponTypeString = FString(TEXT(""));
+		break;
+	}
+	Controller->SetHUDWeaponAmmoType(WeaponTypeString);
+}
 #pragma endregion OwnerOnly
 
 void UCombatComponent::SetAiming(bool bIsAiming)
@@ -237,7 +275,7 @@ void UCombatComponent::FireTimerFinished()
 	bCanFire = true;
 	if (EquippedWeapon == nullptr) return;
 	if (bFireButtonPressed && EquippedWeapon->bAutomatic) Fire();
-	if (EquippedWeapon->IsEmpty()) Reload();
+	ReloadEmptyWeapon();
 }
 
 void UCombatComponent::Server_Fire_Implementation(const FVector_NetQuantize& TraceHitTarget) { Multicast_Fire(TraceHitTarget); }
@@ -258,45 +296,108 @@ void UCombatComponent::Multicast_Fire_Implementation(const FVector_NetQuantize& 
 		EquippedWeapon->Fire(TraceHitTarget);
 	}
 }
+
+bool UCombatComponent::CanFire()
+{
+	if (EquippedWeapon == nullptr) return false;
+	if (!EquippedWeapon->IsEmpty() && bCanFire && CombatState == ECombatState::ECS_Reloading && EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Shotgun) return true; //shotgun icin exceptioon moruk
+	return !EquippedWeapon->IsEmpty() && bCanFire && CombatState == ECombatState::ECS_Unoccupied;
+}
 #pragma endregion Firing
 
-void UCombatComponent::EquipWeapon(class AWeapon* WeaponToEquip)
+#pragma region Grenade
+void UCombatComponent::ThrowGrenade()
 {
-	if (Character == nullptr || WeaponToEquip == nullptr) return;
-	if (EquippedWeapon) //Elemanlar 50 tane silah almasin diye
-	{
-		EquippedWeapon->Dropped();
-	}
-
-	EquippedWeapon = WeaponToEquip;
-	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
-	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("RightHandSocket"));
-	if (HandSocket) HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
-	EquippedWeapon->SetOwner(Character);
-	EquippedWeapon->SetHUDAmmo(); //Weapon da bahsettigim kisim burasiydi
-
-	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
-	{
-		CarriedAmmo = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
-	}
+	if (GrenadeCount == 0) return;
+	if (CombatState != ECombatState::ECS_Unoccupied || EquippedWeapon == nullptr) return;
 	
+	CombatState = ECombatState::ECS_ThrowingGrenade;
+	if (Character)
+	{
+		Character->PlayThrowGrenadeMontage();
+		AttachActorToLeftHand(EquippedWeapon);
+		ShowAttachedGrenade(true);
+	}
+	if (Character && !Character->HasAuthority())
+	{
+		Server_ThrowGrenade();
+	}
+	if (Character && Character->HasAuthority())
+	{
+		GrenadeCount == FMath::Clamp(GrenadeCount - 1, 0, MaxGrenadeCount);
+		UpdateHUDGrenades();
+	}
+}
+
+void UCombatComponent::Server_ThrowGrenade_Implementation()
+{
+	if (GrenadeCount == 0) return; //anti cheat moruk
+	CombatState = ECombatState::ECS_ThrowingGrenade;
+	if (Character)
+	{
+		Character->PlayThrowGrenadeMontage();
+		AttachActorToLeftHand(EquippedWeapon);
+		ShowAttachedGrenade(true);
+	}
+	GrenadeCount == FMath::Clamp(GrenadeCount - 1, 0, MaxGrenadeCount);
+	UpdateHUDGrenades();
+}
+
+void UCombatComponent::UpdateHUDGrenades()
+{
 	Controller = Controller == nullptr ? Cast<AStrikePlayerController>(Character->Controller) : Controller;
 	if (Controller)
 	{
-		Controller->SetHUDCarriedAmmo(CarriedAmmo);
-		UpdateWeaponAmmoTypeText(EquippedWeapon->GetWeaponType());
+		Controller->SetHUDGrenades(GrenadeCount);
 	}
-	
-	if (EquippedWeapon->EquipSound) UGameplayStatics::PlaySoundAtLocation(this, EquippedWeapon->EquipSound, Character->GetActorLocation());
-	if (EquippedWeapon->IsEmpty()) Reload();
-	
-	Character->GetCharacterMovement()->bOrientRotationToMovement = false;//1 Bunlari burada birakma nedenizim repnotifylar sadece clientlerde calisiyor, serverde calismiyor
-	Character->bUseControllerRotationYaw = true;//1
 }
 
+void UCombatComponent::ShowAttachedGrenade(bool bShowGrenade)
+{
+	if (Character && Character->GetAttachedGrenade()) Character->GetAttachedGrenade()->SetVisibility(bShowGrenade);
+}
+
+void UCombatComponent::ThrowGrenadeFinished()
+{
+	CombatState = ECombatState::ECS_Unoccupied;
+	AttachActorToRightHand(EquippedWeapon);
+}
+
+void UCombatComponent::LaunchGrenade()
+{
+	ShowAttachedGrenade(false);
+	if (Character && Character->IsLocallyControlled()) //bunu zaten ABP cagiriyor, characterin null olma ihtimali yok sanki
+	{
+		Server_LaunchGrenade(HitTarget);
+	}
+}
+
+void UCombatComponent::Server_LaunchGrenade_Implementation(const FVector_NetQuantize& Target)
+{
+	if (Character && GrenadeClass && Character->GetAttachedGrenade())
+	{
+		const FVector StartingLocation = Character->GetAttachedGrenade()->GetComponentLocation();
+		FVector ToTarget = Target - StartingLocation;
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = Character;
+		SpawnParams.Instigator = Character;
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			World->SpawnActor<AProjectile>(
+				GrenadeClass,
+				StartingLocation,
+				ToTarget.Rotation(),
+				SpawnParams);
+		}
+	}
+}
+#pragma endregion Grenade
+
+#pragma region Reload
 void UCombatComponent::Reload()
 {
-	if (CarriedAmmo > 0 && CombatState != ECombatState::ECS_Reloading)
+	if (CarriedAmmo > 0 && CombatState == ECombatState::ECS_Unoccupied && EquippedWeapon && !EquippedWeapon->IsFull())
 	{
 		Server_Reload();
 	}
@@ -380,37 +481,6 @@ void UCombatComponent::JumpToShotgunEnd()
 	}
 }
 
-void UCombatComponent::UpdateWeaponAmmoTypeText(EWeaponType WeaponType)
-{
-	if (Controller == nullptr) return;
-	FString WeaponTypeString(TEXT(""));
-	switch(WeaponType)
-	{
-	case EWeaponType::EWT_AssaultRifle:
-		WeaponTypeString = FString(TEXT("Assault Rifle"));
-		break;
-	case EWeaponType::EWT_Pistol:
-		WeaponTypeString = FString(TEXT("Pistol"));
-		break;
-	case EWeaponType::EWT_SniperRifle:
-		WeaponTypeString = FString(TEXT("Sniper Rifle"));
-		break;
-	case EWeaponType::EWT_RocketLauncher:
-		WeaponTypeString = FString(TEXT("Rocket Launcher"));
-		break;
-	case EWeaponType::EWT_SubMachineGun:
-		WeaponTypeString = FString(TEXT("SubMachine Gun"));
-		break;
-	case EWeaponType::EWT_Shotgun:
-		WeaponTypeString = FString(TEXT("Shotgun"));
-		break;
-	case EWeaponType::EWT_GrenadeLauncher:
-		WeaponTypeString = FString(TEXT("Grenade Launcher"));
-		break;
-	}
-	Controller->SetHUDWeaponAmmoType(WeaponTypeString);
-}
-
 void UCombatComponent::HandleReload()
 {
 	Character->PlayReloadMontage();
@@ -429,27 +499,9 @@ int32 UCombatComponent::AmountToReload()
 	}
 	return 0;
 }
-
-bool UCombatComponent::CanFire()
-{
-	if (EquippedWeapon == nullptr) return false;
-	if (!EquippedWeapon->IsEmpty() && bCanFire && CombatState == ECombatState::ECS_Reloading && EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Shotgun) return true; //shotgun icin exceptioon moruk
-	return !EquippedWeapon->IsEmpty() && bCanFire && CombatState != ECombatState::ECS_Reloading/*esittir unoccupied dedi, sacma geldi*/;
-}
-
-void UCombatComponent::InitializeCarriedAmmo()
-{
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_AssaultRifle, StartingAssaultRifleAmmo);
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_RocketLauncher, StartingRocketAmmo);
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_Pistol, StartingPistolAmmo);
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_SubMachineGun, StartingSubMachineGunAmmo);
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_Shotgun, StartingShotgunAmmo);
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_SniperRifle, StartingSniperRifleAmmo);
-	CarriedAmmoMap.Emplace(EWeaponType::EWT_GrenadeLauncher, StartingGrenadeLauncherAmmo);
-}
+#pragma endregion Reload
 
 #pragma region RepNotifies
-
 void UCombatComponent::OnRep_CombatState()
 {
 	switch (CombatState)
@@ -463,6 +515,14 @@ void UCombatComponent::OnRep_CombatState()
 			Fire();
 		}
 		break;
+	case ECombatState::ECS_ThrowingGrenade:
+		if (Character && !Character->IsLocallyControlled())
+		{
+			Character->PlayThrowGrenadeMontage();
+			AttachActorToLeftHand(EquippedWeapon);
+			ShowAttachedGrenade(true);
+		}
+		break;
 	}
 }
 
@@ -470,13 +530,12 @@ void UCombatComponent::OnRep_EquippedWeapon()
 {
 	if (EquippedWeapon && Character)
 	{
-		EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);//Bunlari buraya da ekledi, ustteki fonksiyon time safe degil diye
-		const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("RightHandSocket"));//He tamam yukardaki serverde calisiyor, bu clientte, silahimiz simdi fizik tabanli diye attach atamiyoruz
-		if (HandSocket) HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());//O yuzden serverden gelen yanittan once kendimiz fizikleri kaptioyuz, onu da set weapon state fonksiyonu hallediyor zaten
+		EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);//Bunlari buraya da ekledi, ustteki fonksiyon time safe degil diye//He tamam yukardaki serverde calisiyor, bu clientte, silahimiz simdi fizik tabanli diye attach atamiyoruz//O yuzden serverden gelen yanittan once kendimiz fizikleri kaptioyuz, onu da set weapon state fonksiyonu hallediyor zaten
+		AttachActorToRightHand(EquippedWeapon);
 		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
 		Character->bUseControllerRotationYaw = true;
-		UpdateWeaponAmmoTypeText(EquippedWeapon->GetWeaponType()); //bunun icin dogru yer mi bilmiyorum
-		if (EquippedWeapon->EquipSound) UGameplayStatics::PlaySoundAtLocation(this, EquippedWeapon->EquipSound, Character->GetActorLocation());
+		//UpdateWeaponAmmoTypeText(EquippedWeapon->GetWeaponType()); //bunun icin dogru yer mi bilmiyorum
+		PlayEquipWeaponSound();
 	}
 }
 
@@ -492,4 +551,82 @@ void UCombatComponent::OnRep_CarriedAmmo()
 			CarriedAmmo == 0;
 	if (bJumpToShotgunEnd) JumpToShotgunEnd();
 }
+
+void UCombatComponent::OnRep_GrenadeCount()
+{
+	UpdateHUDGrenades();
+}
 #pragma endregion RepNotifies
+
+void UCombatComponent::InitializeCarriedAmmo()
+{
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_AssaultRifle, StartingAssaultRifleAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_RocketLauncher, StartingRocketAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_Pistol, StartingPistolAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_SubMachineGun, StartingSubMachineGunAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_Shotgun, StartingShotgunAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_SniperRifle, StartingSniperRifleAmmo);
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_GrenadeLauncher, StartingGrenadeLauncherAmmo);
+}
+
+void UCombatComponent::EquipWeapon(class AWeapon* WeaponToEquip)
+{
+	if (Character == nullptr || WeaponToEquip == nullptr) return;
+	if (CombatState != ECombatState::ECS_Unoccupied) return;
+
+	DropEquippedWeapon();
+	EquippedWeapon = WeaponToEquip;
+	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
+	AttachActorToRightHand(EquippedWeapon);
+	EquippedWeapon->SetOwner(Character);
+	EquippedWeapon->SetHUDAmmo(); //Weapon da bahsettigim kisim burasiydi
+	UpdateCarriedAmmo();
+	PlayEquipWeaponSound();
+	ReloadEmptyWeapon();
+	
+	Character->GetCharacterMovement()->bOrientRotationToMovement = false;//1 Bunlari burada birakma nedenizim repnotifylar sadece clientlerde calisiyor, serverde calismiyor
+	Character->bUseControllerRotationYaw = true;//1
+}
+
+void UCombatComponent::DropEquippedWeapon()
+{
+	if (EquippedWeapon) EquippedWeapon->Dropped();
+}
+
+void UCombatComponent::AttachActorToRightHand(AActor* ActorToAttach)
+{
+	if (Character == nullptr || Character->GetMesh() == nullptr || ActorToAttach == nullptr) return;
+	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("RightHandSocket"));
+	if (HandSocket) HandSocket->AttachActor(ActorToAttach, Character->GetMesh());
+}
+
+void UCombatComponent::AttachActorToLeftHand(AActor* ActorToAttach)
+{
+	if (Character == nullptr || Character->GetMesh() == nullptr || ActorToAttach == nullptr) return;
+	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("LeftHandSocket"));
+	if (HandSocket) HandSocket->AttachActor(ActorToAttach, Character->GetMesh());
+}
+
+void UCombatComponent::UpdateCarriedAmmo()
+{
+	if (EquippedWeapon == nullptr) return;
+	
+	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
+	{
+		CarriedAmmo = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
+	}
+	
+	Controller = Controller == nullptr ? Cast<AStrikePlayerController>(Character->Controller) : Controller;
+	if (Controller)
+	{
+		Controller->SetHUDCarriedAmmo(CarriedAmmo);
+		UpdateWeaponAmmoTypeText(EquippedWeapon->GetWeaponType());
+	}
+}
+
+void UCombatComponent::PlayEquipWeaponSound()
+{
+	if (Character && EquippedWeapon && EquippedWeapon->EquipSound) UGameplayStatics::PlaySoundAtLocation(this, EquippedWeapon->EquipSound, Character->GetActorLocation());
+}
+
+void UCombatComponent::ReloadEmptyWeapon() { if (EquippedWeapon && EquippedWeapon->IsEmpty()) Reload(); }

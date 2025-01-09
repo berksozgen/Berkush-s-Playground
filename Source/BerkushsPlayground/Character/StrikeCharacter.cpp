@@ -65,6 +65,10 @@ AStrikeCharacter::AStrikeCharacter()
 	GetMesh()->SetCollisionObjectType(ECC_SkeletalMesh);
 
 	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
+
+	AttachedGrenade = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Attached Grenade"));
+	AttachedGrenade->SetupAttachment(GetMesh(), FName(TEXT("GrenadeSocket")));
+	AttachedGrenade->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -74,7 +78,7 @@ void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	DOREPLIFETIME_CONDITION(AStrikeCharacter, OverlappingWeapon, COND_OwnerOnly);
 	//DOREPLIFETIME(AStrikeCharacter, OverlappingWeapon); //Boyle yapinca biri silah ustunde durunca herkeste gozukuyor
 	DOREPLIFETIME(AStrikeCharacter, Health);
-	DOREPLIFETIME(AStrikeCharacter, bIsCurrentlyAlive); //bu da deneme
+	//DOREPLIFETIME(AStrikeCharacter, bIsCurrentlyAlive); //bu da deneme
 	DOREPLIFETIME(AStrikeCharacter, bDisableGameplay);
 }
 
@@ -95,6 +99,10 @@ void AStrikeCharacter::BeginPlay()
 	if (HasAuthority())
 	{
 		OnTakeAnyDamage.AddDynamic(this, &AStrikeCharacter::ReceiveDamage);
+	}
+	if (AttachedGrenade)
+	{
+		AttachedGrenade->SetVisibility(false);
 	}
 }
 
@@ -200,6 +208,12 @@ void AStrikeCharacter::PlayElimMontage()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && ElimMontage) AnimInstance->Montage_Play(ElimMontage);
+}
+
+void AStrikeCharacter::PlayThrowGrenadeMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && ThrowGrenadeMontage) AnimInstance->Montage_Play(ThrowGrenadeMontage);
 }
 
 void AStrikeCharacter::PlayHitReactMontage()
@@ -351,6 +365,8 @@ void AStrikeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &AStrikeCharacter::FireReleased);
 		//Reloading
 		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &AStrikeCharacter::ReloadPressed);
+		//Throwing Grenade
+		EnhancedInputComponent->BindAction(ThrowGrenadeAction, ETriggerEvent::Started, this, &AStrikeCharacter::ThrowGrenadePressed);
 	}
 	else UE_LOG(LogTemp, Error, TEXT("Strike Karakteri EnhancedInputComponent'i Aktive Edemedi"));
 }
@@ -392,6 +408,14 @@ void AStrikeCharacter::FireReleased(const FInputActionValue& Value) { if (bDisab
 
 void AStrikeCharacter::ReloadPressed(const FInputActionValue& Value) { if (bDisableGameplay) return; /*icime sinmiyor bu*/ if (Combat) Combat->Reload(); }
 
+void AStrikeCharacter::ThrowGrenadePressed(const FInputActionValue& Value)
+{
+	if (Combat)
+	{
+		Combat->ThrowGrenade();
+	}
+}
+
 void AStrikeCharacter::MoveForward(float Value)
 {
 	if (bDisableGameplay) return; //icime sinmiyor bu
@@ -424,14 +448,14 @@ void AStrikeCharacter::Server_EquipButtonPressed_Implementation() { if (Combat) 
 void AStrikeCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
 	class AController* InstigatorController, AActor* DamageCauser) /*Network event mi emin degilim*/
 {
-	if(!bIsCurrentlyAlive) return; //Havuza girince loopa giriyo
+	if (bElimmed) return; //bElimmed diye varimiz varmis la malim ben
 	Health = FMath::Clamp(Health-Damage, 0.0f, MaxHealth);
 	UpdateHUDHealth(); //niye bunu ikisinde de cagiriyoruz, tamam repler serverde calismyor da owner degilse anlami ne
 	PlayHitReactMontage();
 
 	if (Health == 0.f)
 	{
-		bIsCurrentlyAlive = false; //bu da denemenin devami
+		//bIsCurrentlyAlive = false; //bu da denemenin devami
 		AStrikeGameMode* StrikeGameMode = GetWorld()->GetAuthGameMode<AStrikeGameMode>();
 		if (StrikeGameMode)
 		{

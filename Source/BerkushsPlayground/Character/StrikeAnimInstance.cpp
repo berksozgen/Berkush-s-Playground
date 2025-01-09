@@ -78,7 +78,7 @@ void UStrikeAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		}
 	}
 
-	bUseFABRIK = StrikeCharacter->GetCombatState() != ECombatState::ECS_Reloading;
-	bUseAimOffsets = StrikeCharacter->GetCombatState() != ECombatState::ECS_Reloading && !StrikeCharacter->GetDisableGameplay(); //ya ak buraya da ekledik
-	bTransformRightHand = StrikeCharacter->GetCombatState() != ECombatState::ECS_Reloading && !StrikeCharacter->GetDisableGameplay(); //buraya da
+	bUseFABRIK = StrikeCharacter->GetCombatState() == ECombatState::ECS_Unoccupied;
+	bUseAimOffsets = StrikeCharacter->GetCombatState() == ECombatState::ECS_Unoccupied && !StrikeCharacter->GetDisableGameplay(); //ya ak buraya da ekledik
+	bTransformRightHand = StrikeCharacter->GetCombatState() == ECombatState::ECS_Unoccupied && !StrikeCharacter->GetDisableGameplay(); //buraya da
 }

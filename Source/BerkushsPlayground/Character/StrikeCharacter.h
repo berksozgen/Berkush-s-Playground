@@ -24,38 +24,33 @@ class BERKUSHSPLAYGROUND_API AStrikeCharacter : public ACharacter, public IInter
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* StrikeMappingContext;
-
 	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* JumpAction;
-
 	/** Move Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* MoveAction;
-
 	/** Look Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
-
 	/** Equip Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* EquipAction;
-
 	/** Crouch Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* CrouchAction;
-	
 	/** Aim Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* AimAction;
-
 	/** Fire Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* FireAction;
-
 	/** Reload Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* ReloadAction;
+	/** Throw Grenade Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ThrowGrenadeAction;
 
 public:
 	AStrikeCharacter();
@@ -67,6 +62,7 @@ public:
 	void PlayFireMontage(bool bAiming);
 	void PlayReloadMontage();
 	void PlayElimMontage();
+	void PlayThrowGrenadeMontage();
 	
 	virtual void OnRep_ReplicatedMovement() override;
 
@@ -92,6 +88,8 @@ public:
 	void FireReleased(const FInputActionValue& Value);
 	//
 	void ReloadPressed(const FInputActionValue& Value);
+	//
+	void ThrowGrenadePressed(const FInputActionValue& Value);
 
 	UPROPERTY(Replicated)
 	bool bDisableGameplay = false;
@@ -162,6 +160,8 @@ private:
 	UAnimMontage* HitReactMontage;
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* ElimMontage;
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* ThrowGrenadeMontage;
 	
 	void HideCameraIfCharacterClose(); //Bu isime cozum bul
 	UPROPERTY(EditAnywhere)
@@ -219,9 +219,13 @@ private:
 	UPROPERTY()
 	class AStrikePlayerState* StrikePlayerState;
 
+	//Grenade
+	UPROPERTY(VisibleAnywhere, Category = Grenade)
+	USkeletalMeshComponent* AttachedGrenade;
+
 	//deneme
-	UPROPERTY(Replicated)
-	bool bIsCurrentlyAlive = true;
+	//UPROPERTY(Replicated)
+	//bool bIsCurrentlyAlive = true;
 
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
@@ -240,6 +244,7 @@ public:
 	FORCEINLINE UCombatComponent* GetCombat() const { return Combat; }
 	FORCEINLINE bool GetDisableGameplay() const { return bDisableGameplay; }
 	FORCEINLINE UAnimMontage* GetReloadMontage() const { return ReloadMontage; }
+	FORCEINLINE USkeletalMeshComponent* GetAttachedGrenade() const { return AttachedGrenade; }
 	
 	FVector GetHitTarget() const;
 };

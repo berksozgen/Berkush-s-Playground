@@ -31,6 +31,13 @@ public:
 	void ShotgunShellReload();
 
 	void JumpToShotgunEnd();
+
+	UFUNCTION(BlueprintCallable)
+	void ThrowGrenadeFinished();
+	UFUNCTION(BlueprintCallable)
+	void LaunchGrenade();
+	UFUNCTION(Server, Reliable)
+	void Server_LaunchGrenade(const FVector_NetQuantize& Target);
 protected:
 	virtual void BeginPlay() override;
 	void SetAiming(bool bIsAiming);
@@ -57,6 +64,20 @@ protected:
 
 	void HandleReload();
 	int32 AmountToReload();
+
+	void ThrowGrenade();
+	UFUNCTION(Server, Reliable)
+	void Server_ThrowGrenade();
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AProjectile> GrenadeClass;
+
+	void DropEquippedWeapon();
+	void AttachActorToRightHand(AActor* ActorToAttach);
+	void AttachActorToLeftHand(AActor* ActorToAttach);
+	void UpdateCarriedAmmo();
+	void PlayEquipWeaponSound();
+	void ReloadEmptyWeapon();
+	void ShowAttachedGrenade(bool bShowGrenade);
 
 private:
 	UPROPERTY()
@@ -142,7 +163,16 @@ private:
 	void UpdateAmmoValues();
 	void UpdateShotgunAmmoValues();
 
+	UPROPERTY(ReplicatedUsing = OnRep_GrenadeCount)
+	int32 GrenadeCount = 2;
+	UFUNCTION()
+	void OnRep_GrenadeCount();
+	UPROPERTY(EditAnywhere)
+	int32 MaxGrenadeCount = 4;
+
+	void UpdateHUDGrenades();
+
 	void UpdateWeaponAmmoTypeText(EWeaponType WeaponType);
 public:	
-	
+	FORCEINLINE int32 GetGrenadesCount() const { return GrenadeCount; }
 };
