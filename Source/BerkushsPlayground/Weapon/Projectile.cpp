@@ -2,6 +2,7 @@
 
 #include "Projectile.h"
 
+#include "NiagaraFunctionLibrary.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -52,12 +53,65 @@ void AProjectile::BeginPlay()
 }
 
 void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
-	FVector NormalImpulse, const FHitResult& Hit)
+                        FVector NormalImpulse, const FHitResult& Hit)
 {
 	Destroy();
 }
 
+void AProjectile::SpawnTrailSystem()
+{
+	if (TrailSystem)
+	{
+		TrailSystemComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			TrailSystem,
+			GetRootComponent(),
+			FName(),
+			GetActorLocation(),
+			GetActorRotation(),
+			EAttachLocation::KeepWorldPosition,
+			false);
+	}
+}
+
+void AProjectile::ExplodeDamage()
+{
+	APawn* FiringPawn = GetInstigator();
+	if (FiringPawn && HasAuthority())
+	{
+		AController* FiringController = FiringPawn->GetController();
+		if (FiringController)
+		{
+			UGameplayStatics::ApplyRadialDamageWithFalloff(
+				this, //World Context Object
+				Damage, //Base Damage
+				10.f, //Minimum Damage
+				GetActorLocation(), //Origin
+				DamageInnerRadius, //Damage Inner Radius
+				DamageOuterRadius, //Damage Outer Radios
+				1.f, //Damage Falloff (Ustlu sayilar iste 1 verince linear oluyo)
+				UDamageType::StaticClass(), //Damage Type Class
+				TArray<AActor*>(), //Ignore actors
+				this, //Damage Causer
+				FiringController); //Instigator (Gerek yok aslinda)
+		}
+	}
+}
+
 void AProjectile::Tick(float DeltaTime) { Super::Tick(DeltaTime); }
+
+void AProjectile::StartDestroyTimer()
+{
+	GetWorldTimerManager().SetTimer(
+	DestroyTimer,
+	this,
+	&AProjectile::DestroyTimerFinished,
+	DestroyTime);
+}
+
+void AProjectile::DestroyTimerFinished()
+{
+	Destroy();
+}
 
 void AProjectile::Destroyed() //Bu aktor replike oldugu icin, destroy fdonksiyonu kendiliginden  multicast, override ederek particle system icin ayri RPC acmaya gerek duymuyoruz
 {

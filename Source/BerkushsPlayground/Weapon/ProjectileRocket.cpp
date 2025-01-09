@@ -3,9 +3,7 @@
 #include "ProjectileRocket.h"
 
 #include "Kismet/GameplayStatics.h"
-#include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
-#include "NiagaraSystemInstance.h"
 #include "NiagaraSystemInstanceController.h"
 #include "RocketMovementComponent.h"
 #include "Components/BoxComponent.h"
@@ -14,9 +12,9 @@
 
 AProjectileRocket::AProjectileRocket()
 {
-	RocketMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Rocket Mesh"));
-	RocketMesh->SetupAttachment(RootComponent);
-	RocketMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ProjectileMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Rocket Mesh"));
+	ProjectileMesh->SetupAttachment(RootComponent);
+	ProjectileMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	RocketMovementComponent = CreateDefaultSubobject<URocketMovementComponent>(TEXT("RocketMovementComponent")); //Custom  movement component espirisi yok pek
 	RocketMovementComponent->bRotationFollowsVelocity = true; //bunu false yapmicak miydik
@@ -32,17 +30,7 @@ void AProjectileRocket::BeginPlay()
 		CollisionBox->OnComponentHit.AddDynamic(this, &AProjectileRocket::OnHit); //Sadece serverde olussun istiyoruz bunun
 	}
 
-	if (TrailSystem)
-	{
-		TrailSystemComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			TrailSystem,
-			GetRootComponent(),
-			FName(),
-			GetActorLocation(),
-			GetActorRotation(),
-			EAttachLocation::KeepWorldPosition,
-			false);
-	}
+	SpawnTrailSystem();
 
 	if (ProjectileLoop && LoopingSoundAttenuation)
 	{
@@ -67,45 +55,19 @@ void AProjectileRocket::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, 
 {
 	if (OtherActor == GetOwner()) return; //Kendine vurunca patlamasin diye gene hasar aliyoruz da kendine vurunca patlamasi sacmaydi ondan
 	
-	APawn* FiringPawn = GetInstigator();
-	if (FiringPawn && HasAuthority())
-	{
-		AController* FiringController = FiringPawn->GetController();
-		if (FiringController)
-		{
-			UGameplayStatics::ApplyRadialDamageWithFalloff(
-				this, //World Context Object
-				Damage, //Base Damage
-				10.f, //Minimum Damage
-				GetActorLocation(), //Origin
-				200.f, //Damage Inner Radius
-				500.f, //Damage Outer Radios
-				1.f, //Damage Falloff (Ustlu sayilar iste 1 verince linear oluyo)
-				UDamageType::StaticClass(), //Damage Type Class
-				TArray<AActor*>(), //Ignore actors
-				this, //Damage Causer
-				FiringController); //Instigator (Gerek yok aslinda)
-		}
-	}
+	ExplodeDamage();
 	
-	GetWorldTimerManager().SetTimer(
-		DestroyTimer,
-		this,
-		&AProjectileRocket::DestroyTimerFinished,
-		DestroyTime);
+	StartDestroyTimer();
 	
 	if (ImpactParticles) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, GetActorTransform());
 	if (ImpactSound) UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, GetActorLocation());
-	if (RocketMesh) RocketMesh->SetVisibility(false);
+	if (ProjectileMesh) ProjectileMesh->SetVisibility(false);
 	if (CollisionBox) CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	if (TrailSystemComponent && TrailSystemComponent->GetSystemInstanceController()) TrailSystemComponent->GetSystemInstanceController()->Deactivate(); //GetSystemInstance deprached olmus
 	if (ProjectileLoopComponent && ProjectileLoopComponent->IsPlaying()) ProjectileLoopComponent->Stop();
 }
 
-void AProjectileRocket::DestroyTimerFinished()
-{
-	Destroy();
-}
+
 
 void AProjectileRocket::Destroyed()
 {

@@ -187,6 +187,9 @@ void AStrikeCharacter::PlayReloadMontage()
 		case EWeaponType::EWT_SniperRifle:
 			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
 			break;
+		case EWeaponType::EWT_GrenadeLauncher:
+			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
+			break;
 		}
 		
 		AnimInstance->Montage_JumpToSection(SectionName);
