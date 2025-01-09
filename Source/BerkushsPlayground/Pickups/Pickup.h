@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+
+#include "BerkushsPlayground/Weapon/WeaponTypes.h"
+
 #include "Pickup.generated.h"
 
 UCLASS()
@@ -26,6 +29,9 @@ protected:
 		int32 OtherBodyIndex,
 		bool bFromSweep,
 		const FHitResult& SweepResult);
+
+	UPROPERTY(EditAnywhere)
+	float BaseTurnRate = 45.f;
 
 private:
 	UPROPERTY(EditAnywhere)

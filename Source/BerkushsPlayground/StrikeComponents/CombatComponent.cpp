@@ -630,3 +630,16 @@ void UCombatComponent::PlayEquipWeaponSound()
 }
 
 void UCombatComponent::ReloadEmptyWeapon() { if (EquippedWeapon && EquippedWeapon->IsEmpty()) Reload(); }
+
+void UCombatComponent::PickupAmmo(EWeaponType WeaponType, int32 AmmoAmount)
+{
+	if (CarriedAmmoMap.Contains(WeaponType))
+	{
+		CarriedAmmoMap[WeaponType] += AmmoAmount;
+		UpdateCarriedAmmo();
+	}
+	if (EquippedWeapon && EquippedWeapon->IsEmpty() && EquippedWeapon->GetWeaponType() == WeaponType)
+	{
+		Reload();
+	}
+}

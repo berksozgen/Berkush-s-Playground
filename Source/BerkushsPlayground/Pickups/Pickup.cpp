@@ -2,8 +2,9 @@
 
 #include "Pickup.h"
 
-#include "BerkushsPlayground/Weapon/WeaponTypes.h"
 #include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 
@@ -16,24 +17,26 @@ APickup::APickup()
 
 	OverlapSphere = CreateDefaultSubobject<USphereComponent>(TEXT("OverlapSphere"));
 	OverlapSphere->SetupAttachment(RootComponent);
-	OverlapSphere->SetSphereRadius(150.f);
+	OverlapSphere->SetSphereRadius(50.f);
 	OverlapSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	OverlapSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	OverlapSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 
-	PickupMesh->CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PickupMesh"));
+	
+	PickupMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PickupMesh"));
 	PickupMesh->SetupAttachment(OverlapSphere);
 	PickupMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	PickupMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_PURPLE);
 	PickupMesh->MarkRenderStateDirty(); //Renderer'in bunu tekrar renderlamasiini sagliyor kabaca
 	if (PickupMesh) PickupMesh->SetRenderCustomDepth(true);
-
-	PickupSkeletalMesh->CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("PickupSkeletalMesh"));
+	
+	PickupSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("PickupSkeletalMesh"));
 	PickupSkeletalMesh->SetupAttachment(OverlapSphere);
 	PickupSkeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	PickupSkeletalMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_PURPLE);
 	PickupSkeletalMesh->MarkRenderStateDirty(); //Renderer'in bunu tekrar renderlamasiini sagliyor kabaca
 	if (PickupSkeletalMesh) PickupSkeletalMesh->SetRenderCustomDepth(true);
+	
 }
 
 void APickup::BeginPlay()
@@ -49,6 +52,15 @@ void APickup::BeginPlay()
 void APickup::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+	if (PickupMesh)
+	{
+		PickupMesh->AddLocalRotation(FRotator(0.f, BaseTurnRate * DeltaTime, 0.f));
+	}
+	if (PickupSkeletalMesh)
+	{
+		PickupSkeletalMesh->AddLocalRotation(FRotator(0.f, BaseTurnRate * DeltaTime, 0.f));
+	}
 }
 
 void APickup::Destroyed()
