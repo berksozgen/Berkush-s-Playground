@@ -173,22 +173,22 @@ void AStrikeCharacter::PlayReloadMontage()
 			SectionName = FName("Rifle");
 			break;
 		case EWeaponType::EWT_RocketLauncher:
-			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
+			SectionName = FName("RocketLauncher");
 			break;
 		case EWeaponType::EWT_Pistol:
-			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
+			SectionName = FName("Pistol");
 			break;
 		case EWeaponType::EWT_SubMachineGun:
-			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
+			SectionName = FName("Pistol"); //bu animimiz yok he smg icin ama fixlemicez sonra gibi
 			break;
 		case EWeaponType::EWT_Shotgun:
-			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
+			SectionName = FName("Shotgun");
 			break;
 		case EWeaponType::EWT_SniperRifle:
-			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
+			SectionName = FName("SniperRifle");
 			break;
 		case EWeaponType::EWT_GrenadeLauncher:
-			SectionName = FName("Rifle"); //bu animimiz yok he roket icin
+			SectionName = FName("GrenadeLauncher"); //bunun custom animasyonu yok aslinda ama sesler farkli
 			break;
 		}
 		
