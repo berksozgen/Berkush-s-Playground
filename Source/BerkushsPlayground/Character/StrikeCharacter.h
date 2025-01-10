@@ -96,6 +96,8 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void ShowSniperScopeWidget(bool bShowScope);
+
+	void UpdateHUDHealth();
 protected:
 	virtual void BeginPlay() override;
 
@@ -114,8 +116,7 @@ protected:
 	
 	UFUNCTION()
 	void ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
-
-	void UpdateHUDHealth();
+	
 	//Poll for any relelvant classes and initialize our HUD /*Begin play kullanmama nedenimiz, bazi network tabanli unreal siniflarinin initialise olmasi 1-2 frame suruyor, bunu tickte yazmak yerine baska bir yer bulsam iyi olcak*/
 	void PollInit();
 
@@ -139,6 +140,8 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCombatComponent* Combat;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UBuffComponent* Buff;
 
 	UFUNCTION(Server, Reliable)
 	void Server_EquipButtonPressed();
@@ -185,7 +188,7 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_Health, VisibleAnywhere, Category = "Player Stats")
 	float Health = 100.f;
 	UFUNCTION()
-	void OnRep_Health();
+	void OnRep_Health(float LastHealth); //btw tekrardan hatirlatmak icin, repnotifylara sadece kendi tipinde input param verebiliyoruz ve bu degisimden oceki halini gosteriyor client icin//ve tekrardan eklemek icin servarda cagrilmiyor bunlar
 
 	bool bElimmed = false;
 	FTimerHandle ElimTimer;
@@ -239,9 +242,11 @@ public:
 	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
 	FORCEINLINE bool IsElimmed() const { return bElimmed; }
 	FORCEINLINE float GetHealth() const { return Health; }
+	FORCEINLINE void SetHealth(float Amount) { Health = Amount; }
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 	ECombatState GetCombatState() const;
 	FORCEINLINE UCombatComponent* GetCombat() const { return Combat; }
+	FORCEINLINE UBuffComponent* GetBuff() const { return Buff; }
 	FORCEINLINE bool GetDisableGameplay() const { return bDisableGameplay; }
 	FORCEINLINE UAnimMontage* GetReloadMontage() const { return ReloadMontage; }
 	FORCEINLINE USkeletalMeshComponent* GetAttachedGrenade() const { return AttachedGrenade; }

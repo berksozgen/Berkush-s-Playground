@@ -6,6 +6,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "BerkushsPlayground/StrikeComponents/CombatComponent.h"
+#include "BerkushsPlayground/StrikeComponents/BuffComponent.h"
 #include "BerkushsPlayground/Weapon/Weapon.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -47,6 +48,9 @@ AStrikeCharacter::AStrikeCharacter()
 	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 	Combat->SetIsReplicated(true);
 
+	Buff = CreateDefaultSubobject<UBuffComponent>(TEXT("BuffComponent"));
+	Buff->SetIsReplicated(true);
+
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 
 	//Fix camera, birileri araya gecince zoom yapmasin diye
@@ -87,6 +91,7 @@ void AStrikeCharacter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	if (Combat) Combat->Character = this;
+	if (Buff) Buff->Character = this;
 }
 
 void AStrikeCharacter::BeginPlay()
@@ -466,10 +471,13 @@ void AStrikeCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const U
 	}
 }
 
-void AStrikeCharacter::OnRep_Health()
+void AStrikeCharacter::OnRep_Health(float LastHealth)
 {
 	UpdateHUDHealth();
-	PlayHitReactMontage();
+	if (Health < LastHealth)
+	{
+		PlayHitReactMontage();
+	}
 }
 
 void AStrikeCharacter::SetOverlappingWeapon(AWeapon* Weapon) //Bu kod, Weapon'un Collision Handle'lamasi yuzunden sadece serverde calisiyor
