@@ -36,6 +36,9 @@ class BERKUSHSPLAYGROUND_API AStrikeCharacter : public ACharacter, public IInter
 	/** Equip Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* EquipAction;
+	/** Equip Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* InteractAction;
 	/** Crouch Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* CrouchAction;
@@ -78,6 +81,8 @@ public:
 	void EnhancedLook(const FInputActionValue& Value);
 	//
 	void EquipPressed(const FInputActionValue& Value);
+	//
+	void InteractPressed(const FInputActionValue& Value);
 	//
 	void CrouchPressed(const FInputActionValue& Value);
 	//
@@ -142,8 +147,14 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_OverlappingWeapon)
 	class AWeapon* OverlappingWeapon;
 
+	UPROPERTY(ReplicatedUsing = OnRep_OverlappingDoor)
+	class ADoor* OverlappingDoor;
+
 	UFUNCTION()
 	void OnRep_OverlappingWeapon(AWeapon* LastWeapon); //RepNotifylara sadece kendi turlerindeki seyi input param olarak verebiliyoruz
+
+	UFUNCTION()
+	void OnRep_OverlappingDoor(ADoor* LastDoor);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCombatComponent* Combat;
@@ -152,6 +163,9 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void Server_EquipButtonPressed();
+
+	UFUNCTION(Server, Reliable)
+	void Server_InteractButtonPressed();
 
 	float AO_Yaw;
 	float InterpAO_Yaw;
@@ -252,6 +266,7 @@ private:
 
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
+	void SetOverlappingDoor(class ADoor* Door);
 	bool IsWeaponEquipped();
 	bool IsAiming();
 	FORCEINLINE float GetAO_Yaw() const { return AO_Yaw; }

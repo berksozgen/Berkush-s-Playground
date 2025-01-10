@@ -17,6 +17,7 @@
 #include "Net/UnrealNetwork.h"
 #include "StrikeAnimInstance.h"
 #include "BerkushsPlayground/BerkushsPlayground.h"
+#include "BerkushsPlayground/Door/Door.h"
 #include "BerkushsPlayground/PlayerController/StrikePlayerController.h"
 #include "BerkushsPlayground/GameMode/StrikeGameMode.h"
 #include "Kismet/GameplayStatics.h"
@@ -80,6 +81,7 @@ void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AStrikeCharacter, OverlappingWeapon, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AStrikeCharacter, OverlappingDoor, COND_OwnerOnly);
 	//DOREPLIFETIME(AStrikeCharacter, OverlappingWeapon); //Boyle yapinca biri silah ustunde durunca herkeste gozukuyor
 	DOREPLIFETIME(AStrikeCharacter, Health);
 	DOREPLIFETIME(AStrikeCharacter, Shield);
@@ -387,6 +389,8 @@ void AStrikeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AStrikeCharacter::EnhancedLook);
 		// Equipping
 		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Started, this, &AStrikeCharacter::EquipPressed);
+		// Interacting
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AStrikeCharacter::InteractPressed);
 		// Crouching
 		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AStrikeCharacter::CrouchPressed);
 		// Aiming
@@ -424,6 +428,12 @@ void AStrikeCharacter::EquipPressed(const FInputActionValue& Value) //Parametrel
 {
 	if (bDisableGameplay) return; //icime sinmiyor bu
 	if (Combat) Server_EquipButtonPressed();
+}
+
+void AStrikeCharacter::InteractPressed(const FInputActionValue& Value)
+{
+	if (bDisableGameplay) return;
+	Server_InteractButtonPressed();
 }
 
 void AStrikeCharacter::CrouchPressed(const FInputActionValue& Value) { if (bDisableGameplay) return; /*icime sinmiyor bu*/ (bIsCrouched) ? UnCrouch() : Crouch(); }
@@ -484,6 +494,12 @@ void AStrikeCharacter::Server_EquipButtonPressed_Implementation()
 			Combat->SwapWeapons();
 		}
 	}
+}
+
+void AStrikeCharacter::Server_InteractButtonPressed_Implementation()
+{
+	if (OverlappingDoor) OverlappingDoor->InteractWithDoor();
+	//Baska interactable ekleyince bunu interface e cekicem
 }
 
 void AStrikeCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
@@ -550,16 +566,29 @@ void AStrikeCharacter::SetOverlappingWeapon(AWeapon* Weapon) //Bu kod, Weapon'un
 		OverlappingWeapon->ShowPickupWidget(false); //Bu kisim da sadece serverde calisiyor, yani degeri degistirmeden once silah varsa kapiyor
 	}
 	OverlappingWeapon = Weapon;
-	if (IsLocallyControlled()) //Yani bu if check niye gerekli bilemedim //Bunu acikliyor galiba ama anlamadim 46. ders sonu
+	if (IsLocallyControlled()) //Yani bu if check niye gerekli bilemedim //Bunu acikliyor galiba ama anlamadim 46. ders sonu //galiba serverde gelmiyor diye
 	{
 		if (OverlappingWeapon) OverlappingWeapon->ShowPickupWidget(true);
 	}
+}
+
+void AStrikeCharacter::SetOverlappingDoor(class ADoor* Door)
+{
+	if (OverlappingDoor) OverlappingDoor->ShowDoorWidget(false);
+	OverlappingDoor = Door;
+	if (IsLocallyControlled() && OverlappingDoor) OverlappingDoor->ShowDoorWidget(true);
 }
 
 void AStrikeCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon) //RepNotify'lar asla serverde calismaz! //Rep notify ile giren girdi degerleri, replikasyon olmadan onceki degeri dondurur, biraz kafa karistirici
 {
 	if (OverlappingWeapon) OverlappingWeapon->ShowPickupWidget(true);
 	if (LastWeapon) LastWeapon->ShowPickupWidget(false);
+}
+
+void AStrikeCharacter::OnRep_OverlappingDoor(ADoor* LastDoor)
+{
+	if (OverlappingDoor) OverlappingDoor->ShowDoorWidget(true);
+	if (LastDoor) LastDoor->ShowDoorWidget(false);
 }
 
 bool AStrikeCharacter::IsWeaponEquipped() { return Combat && Combat->EquippedWeapon; }//Yari replication ile ilgili sayilir bu aslinda, tum Clientlerde AnimInstance guncellemeleri ile ilgili
