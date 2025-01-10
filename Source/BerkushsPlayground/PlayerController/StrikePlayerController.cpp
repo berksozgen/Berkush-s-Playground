@@ -83,6 +83,7 @@ void AStrikePlayerController::OnPossess(APawn* InPawn)
 	if (StrikeCharacter)
 	{
 		SetHUDHealth(StrikeCharacter->GetHealth(), StrikeCharacter->GetMaxHealth()); //Characteri'in beginplayeyinden bunu kaldirmama nedenimiz, ilk oyun basladiginda overlaylerin daha initiliza olmamasi
+		SetHUDShield(StrikeCharacter->GetShield(), StrikeCharacter->GetMaxShield());
 		SetHUDKilledText(FString(""));
 		//SetKilledText(FText::FromString(TEXT("")));
 	}
@@ -205,6 +206,11 @@ void AStrikePlayerController::SetHUDWeaponAmmo(int32 Ammo)
 		FString WeaponAmmoText = FString::Printf(TEXT("%d"), Ammo);
 		StrikeHUD->CharacterOverlay->WeaponAmmoAmount->SetText(FText::FromString(WeaponAmmoText));
 	}
+	else
+	{
+		bInitializeWeaponAmmo = true;
+		HUDWeaponAmmo = Ammo;
+	}
 }
 
 void AStrikePlayerController::SetHUDCarriedAmmo(int32 Ammo)
@@ -218,6 +224,11 @@ void AStrikePlayerController::SetHUDCarriedAmmo(int32 Ammo)
 		FString CarriedAmmoText = FString::Printf(TEXT("%d"), Ammo);
 		StrikeHUD->CharacterOverlay->CarriedAmmoAmount->SetText(FText::FromString(CarriedAmmoText));
 	}
+	else
+	{
+		bInitializeCarriedAmmo = true;
+		HUDCarriedAmmo = Ammo;
+	}
 }
 
 void AStrikePlayerController::SetHUDWeaponAmmoType(FString AmmoType)
@@ -229,6 +240,11 @@ void AStrikePlayerController::SetHUDWeaponAmmoType(FString AmmoType)
 	if (bHUDValid)
 	{
 		StrikeHUD->CharacterOverlay->WeaponAmmoType->SetText(FText::FromString(AmmoType));
+	}
+	else
+	{
+		bInitializeWeaponAmmoType = true;
+		HUDWeaponAmmoType = AmmoType;
 	}
 }
 
@@ -285,6 +301,7 @@ void AStrikePlayerController::SetHUDGrenades(int32 Grenades)
 	}
 	else
 	{
+		bInitializeGrenades = true;
 		HUDGrenades = Grenades;
 	}
 }
@@ -336,6 +353,10 @@ void AStrikePlayerController::PollInit()
 				if (bInitializeScore) SetHUDScore(HUDScore);
 				if (bInitializeKills) SetHUDKills(HUDKills);
 				if (bInitializeDeaths) SetHUDDeaths(HUDDeaths);
+
+				if (bInitializeCarriedAmmo) SetHUDCarriedAmmo(HUDCarriedAmmo);
+				if (bInitializeWeaponAmmo) SetHUDWeaponAmmo(HUDWeaponAmmo);
+				if (bInitializeWeaponAmmoType) SetHUDWeaponAmmoType(HUDWeaponAmmoType);
 				
 				AStrikeCharacter* StrikeCharacter = Cast<AStrikeCharacter>(GetPawn());
 				if (bInitializeGrenades && StrikeCharacter && StrikeCharacter->GetCombat()) SetHUDGrenades(StrikeCharacter->GetCombat()->GetGrenadesCount());

@@ -99,6 +99,9 @@ public:
 
 	void UpdateHUDHealth();
 	void UpdateHUDShield();
+	void UpdateHUDAmmo();
+
+	void SpawnDefaultWeapon();
 protected:
 	virtual void BeginPlay() override;
 
@@ -122,6 +125,9 @@ protected:
 	void PollInit();
 
 	void RotateInPlace(float DeltaTime);
+
+	void DropOrDestroyWeapons();
+	void DropOrDestroyWeapon(class AWeapon* Weapon);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
@@ -239,6 +245,10 @@ private:
 	//deneme
 	//UPROPERTY(Replicated)
 	//bool bIsCurrentlyAlive = true;
+
+	//Default Weapon
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AWeapon> DefaultWeaponClass;
 
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);

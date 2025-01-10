@@ -31,6 +31,7 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
+	DOREPLIFETIME(UCombatComponent, SecondaryWeapon);
 	DOREPLIFETIME(UCombatComponent, bAiming);
 	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedAmmo, COND_OwnerOnly); //Diger clientler icin onemli degil bu
 	DOREPLIFETIME(UCombatComponent, CombatState);
@@ -535,7 +536,19 @@ void UCombatComponent::OnRep_EquippedWeapon()
 		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
 		Character->bUseControllerRotationYaw = true;
 		//UpdateWeaponAmmoTypeText(EquippedWeapon->GetWeaponType()); //bunun icin dogru yer mi bilmiyorum
-		PlayEquipWeaponSound();
+		PlayEquipWeaponSound(EquippedWeapon);
+		EquippedWeapon->EnableCustomDepth(false); //buna gerek var mi bilmiyorum silebilirim bunu
+		EquippedWeapon->SetHUDAmmo();
+	}
+}
+
+void UCombatComponent::OnRep_SecondaryWeapon()
+{
+	if (SecondaryWeapon && Character)
+	{
+		SecondaryWeapon->SetWeaponState(EWeaponState::EWS_EquippedSecondary);
+		AttachActorToBackpack(SecondaryWeapon);
+		PlayEquipWeaponSound(SecondaryWeapon);
 	}
 }
 
@@ -574,18 +587,65 @@ void UCombatComponent::EquipWeapon(class AWeapon* WeaponToEquip)
 	if (Character == nullptr || WeaponToEquip == nullptr) return;
 	if (CombatState != ECombatState::ECS_Unoccupied) return;
 
+	if (EquippedWeapon != nullptr && SecondaryWeapon == nullptr)
+	{
+		EquipSecondaryWeapon(WeaponToEquip);
+	}
+	else
+	{
+		EquipPrimaryWeapon(WeaponToEquip);
+	}
+	
+	Character->GetCharacterMovement()->bOrientRotationToMovement = false;//1 Bunlari burada birakma nedenizim repnotifylar sadece clientlerde calisiyor, serverde calismiyor
+	Character->bUseControllerRotationYaw = true;//1
+}
+
+void UCombatComponent::SwapWeapons()
+{
+	AWeapon* TempWeapon = EquippedWeapon;
+	EquippedWeapon = SecondaryWeapon;
+	SecondaryWeapon = TempWeapon;
+
+	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
+	AttachActorToRightHand(EquippedWeapon);
+	EquippedWeapon->SetHUDAmmo();
+	UpdateCarriedAmmo();
+	PlayEquipWeaponSound(EquippedWeapon);
+	ReloadEmptyWeapon();
+
+	SecondaryWeapon->SetWeaponState(EWeaponState::EWS_EquippedSecondary);
+	AttachActorToBackpack(SecondaryWeapon);
+}
+
+bool UCombatComponent::ShouldSwapWeapons()
+{
+	return (EquippedWeapon != nullptr && SecondaryWeapon != nullptr);
+}
+
+void UCombatComponent::EquipPrimaryWeapon(AWeapon* WeaponToEquip)
+{
 	DropEquippedWeapon();
 	EquippedWeapon = WeaponToEquip;
+	if (EquippedWeapon == nullptr) return; //burda ve secondary de nullcheck gerekli mi bilemedim
+	
 	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
 	AttachActorToRightHand(EquippedWeapon);
 	EquippedWeapon->SetOwner(Character);
 	EquippedWeapon->SetHUDAmmo(); //Weapon da bahsettigim kisim burasiydi
 	UpdateCarriedAmmo();
-	PlayEquipWeaponSound();
+	PlayEquipWeaponSound(EquippedWeapon);
 	ReloadEmptyWeapon();
+}
+
+void UCombatComponent::EquipSecondaryWeapon(AWeapon* WeaponToEquip)
+{
+	SecondaryWeapon = WeaponToEquip;
+	if (SecondaryWeapon == nullptr) return;
 	
-	Character->GetCharacterMovement()->bOrientRotationToMovement = false;//1 Bunlari burada birakma nedenizim repnotifylar sadece clientlerde calisiyor, serverde calismiyor
-	Character->bUseControllerRotationYaw = true;//1
+	SecondaryWeapon->SetWeaponState(EWeaponState::EWS_EquippedSecondary);
+	AttachActorToBackpack(SecondaryWeapon);
+	SecondaryWeapon->SetOwner(Character);
+	PlayEquipWeaponSound(SecondaryWeapon);
 }
 
 void UCombatComponent::DropEquippedWeapon()
@@ -607,6 +667,13 @@ void UCombatComponent::AttachActorToLeftHand(AActor* ActorToAttach)
 	if (HandSocket) HandSocket->AttachActor(ActorToAttach, Character->GetMesh());
 }
 
+void UCombatComponent::AttachActorToBackpack(AActor* ActorToAttach)
+{
+	if (Character == nullptr || Character->GetMesh() == nullptr || ActorToAttach == nullptr) return;
+	const USkeletalMeshSocket* BackpackSocket = Character->GetMesh()->GetSocketByName(FName("BackpackSocket"));
+	if (BackpackSocket) BackpackSocket->AttachActor(ActorToAttach, Character->GetMesh());
+}
+
 void UCombatComponent::UpdateCarriedAmmo()
 {
 	if (EquippedWeapon == nullptr) return;
@@ -624,9 +691,9 @@ void UCombatComponent::UpdateCarriedAmmo()
 	}
 }
 
-void UCombatComponent::PlayEquipWeaponSound()
+void UCombatComponent::PlayEquipWeaponSound(AWeapon* WeaponToEquip)
 {
-	if (Character && EquippedWeapon && EquippedWeapon->EquipSound) UGameplayStatics::PlaySoundAtLocation(this, EquippedWeapon->EquipSound, Character->GetActorLocation());
+	if (Character && WeaponToEquip && WeaponToEquip->EquipSound) UGameplayStatics::PlaySoundAtLocation(this, WeaponToEquip->EquipSound, Character->GetActorLocation());
 }
 
 void UCombatComponent::ReloadEmptyWeapon() { if (EquippedWeapon && EquippedWeapon->IsEmpty()) Reload(); }

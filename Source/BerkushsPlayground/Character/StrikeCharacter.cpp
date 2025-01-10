@@ -103,7 +103,8 @@ void AStrikeCharacter::PostInitializeComponents()
 void AStrikeCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
+	SpawnDefaultWeapon();
+	UpdateHUDAmmo();
 	UpdateHUDHealth();
 	UpdateHUDShield();
 	if (StrikePlayerController)	StrikePlayerController->SetHUDKilledText(FString(""));
@@ -318,6 +319,16 @@ void AStrikeCharacter::UpdateHUDShield()
 	}
 }
 
+void AStrikeCharacter::UpdateHUDAmmo()
+{
+	StrikePlayerController = StrikePlayerController == nullptr ? Cast<AStrikePlayerController>(GetController()) : StrikePlayerController;
+	if (StrikePlayerController && Combat && Combat->EquippedWeapon)
+	{
+		StrikePlayerController->SetHUDCarriedAmmo(Combat->CarriedAmmo);
+		StrikePlayerController->SetHUDWeaponAmmo(Combat->EquippedWeapon->GetAmmo());
+	}
+}
+
 void AStrikeCharacter::CalculateAO_Pitch()
 {
 	AO_Pitch = GetBaseAimRotation().Pitch; //Serverde rotasyon 0 360 arasinda gidiyor, Unrealin bok yemesi, //5 bayta dusuruyor
@@ -412,11 +423,7 @@ void AStrikeCharacter::Jump() { if (bDisableGameplay) return; /*icime sinmiyor b
 void AStrikeCharacter::EquipPressed(const FInputActionValue& Value) //Parametrelere gerek var mi bilmiyorum, Enhanced input mal ama biraz
 {
 	if (bDisableGameplay) return; //icime sinmiyor bu
-	if (Combat)
-	{
-		if (HasAuthority()) Combat->EquipWeapon(OverlappingWeapon);
-		else Server_EquipButtonPressed();
-	}
+	if (Combat) Server_EquipButtonPressed();
 }
 
 void AStrikeCharacter::CrouchPressed(const FInputActionValue& Value) { if (bDisableGameplay) return; /*icime sinmiyor bu*/ (bIsCrouched) ? UnCrouch() : Crouch(); }
@@ -464,7 +471,20 @@ void AStrikeCharacter::LookUp(float Value) { AddControllerPitchInput(-Value); }
 #pragma endregion Input
 
 #pragma region NetworkEvents
-void AStrikeCharacter::Server_EquipButtonPressed_Implementation() { if (Combat) Combat->EquipWeapon(OverlappingWeapon); }
+void AStrikeCharacter::Server_EquipButtonPressed_Implementation()
+{
+	if (Combat)
+	{
+		if (OverlappingWeapon)
+		{
+			Combat->EquipWeapon(OverlappingWeapon);
+		}
+		else if (Combat->ShouldSwapWeapons())
+		{
+			Combat->SwapWeapons();
+		}
+	}
+}
 
 void AStrikeCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
 	class AController* InstigatorController, AActor* DamageCauser) /*Network event mi emin degilim*/
@@ -595,13 +615,30 @@ FVector AStrikeCharacter::GetHitTarget() const //Bunu bi da yoklayim network mu 
 #pragma region Elimination //Btw Bunlar da network Event ama cok doldu orasi
 void AStrikeCharacter::Elim()
 {
-	if (Combat && Combat->EquippedWeapon) Combat->EquippedWeapon->Dropped();
+	DropOrDestroyWeapons();
 	Multicast_Elim();
 	GetWorldTimerManager().SetTimer(
 		ElimTimer,
 		this,
 		&AStrikeCharacter::ElimTimerFinished,
 		ElimDelay);
+}
+
+void AStrikeCharacter::DropOrDestroyWeapons()
+{
+	if (Combat)
+	{
+		if (Combat->EquippedWeapon) DropOrDestroyWeapon(Combat->EquippedWeapon);
+		if (Combat->SecondaryWeapon) DropOrDestroyWeapon(Combat->SecondaryWeapon);
+	}
+}
+
+void AStrikeCharacter::DropOrDestroyWeapon(class AWeapon* Weapon)
+{
+	if (Weapon == nullptr) return;
+	
+	if (Weapon->bDestroyWeapon) Weapon->Destroy();
+	else Weapon->Dropped();
 }
 
 void AStrikeCharacter::Multicast_Elim_Implementation()
@@ -681,4 +718,19 @@ ECombatState AStrikeCharacter::GetCombatState() const
 {
 	if (Combat == nullptr) return ECombatState::ECS_MAX;
 	return Combat->CombatState;
+}
+
+void AStrikeCharacter::SpawnDefaultWeapon()
+{
+	AStrikeGameMode* StrikeGameMode = Cast<AStrikeGameMode>(UGameplayStatics::GetGameMode(this));
+	UWorld* World = GetWorld();
+	if (StrikeGameMode && World && !bElimmed && DefaultWeaponClass) //bunun null olmamasinin iki yolu var, birincisi zaten server olmamiz gerekiyor, ikincisi lobbyde olursak silah cagirmiyor //bElimmede ihtiyac var mi bilmiyom
+	{
+		AWeapon* StartingWeapon = World->SpawnActor<AWeapon>(DefaultWeaponClass);
+		StartingWeapon->bDestroyWeapon = true; //bu mantik kafama yatmadi da neyse, adam yere atinca kalacak gene, destroy fonksiyonunu silah sinifinin drop fonksiyonuna tasimak daha mantikli sanki
+		if (Combat)
+		{
+			Combat->EquipWeapon(StartingWeapon);
+		}
+	}
 }

@@ -21,6 +21,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	void EquipWeapon(class AWeapon* WeaponToEquip);
+	void SwapWeapons();
 	void Reload();
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
@@ -49,6 +50,8 @@ protected:
 
 	UFUNCTION()
 	void OnRep_EquippedWeapon();
+	UFUNCTION()
+	void OnRep_SecondaryWeapon();
 
 	void Fire();
 	//Burasi void FireButtonPressed(bool bPressed); fonksiyonun onceki yeri, durama gore geri almaya bakacam, mantikli gelmiyor publice tasimak sirf cooldownda millet taramasin yapmak
@@ -76,10 +79,13 @@ protected:
 	void DropEquippedWeapon();
 	void AttachActorToRightHand(AActor* ActorToAttach);
 	void AttachActorToLeftHand(AActor* ActorToAttach);
+	void AttachActorToBackpack(AActor* ActorToAttach);
 	void UpdateCarriedAmmo();
-	void PlayEquipWeaponSound();
+	void PlayEquipWeaponSound(AWeapon* WeaponToEquip);
 	void ReloadEmptyWeapon();
 	void ShowAttachedGrenade(bool bShowGrenade);
+	void EquipPrimaryWeapon(AWeapon* WeaponToEquip);
+	void EquipSecondaryWeapon(AWeapon* WeaponToEquip);
 
 private:
 	UPROPERTY()
@@ -91,6 +97,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon) //Anim Instance buna erisebilsin diye, Her Client anim instancelari kendi uzerinde cagiriyor.
 	class AWeapon* EquippedWeapon;
+	UPROPERTY(ReplicatedUsing = OnRep_SecondaryWeapon)
+	AWeapon* SecondaryWeapon;
+	
 	UPROPERTY(Replicated) //Anim Instance buna erisebilsin diye, Her Client anim instancelari kendi uzerinde cagiriyor.
 	bool bAiming;
 	
@@ -177,4 +186,5 @@ private:
 	void UpdateWeaponAmmoTypeText(EWeaponType WeaponType);
 public:	
 	FORCEINLINE int32 GetGrenadesCount() const { return GrenadeCount; }
+	bool ShouldSwapWeapons();
 };
