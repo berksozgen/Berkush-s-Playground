@@ -44,6 +44,11 @@ private:
 	class UStaticMeshComponent* PickupMesh;
 	UPROPERTY(EditAnywhere)
 	class USkeletalMeshComponent* PickupSkeletalMesh;
+
+	FTimerHandle BindOverlapTimer;
+	UPROPERTY(EditAnywhere)
+	float BindOverlapTime = .15f;
+	void BindOverlapTimerFinished();
 public:	
 	
 };

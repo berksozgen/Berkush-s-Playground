@@ -8,13 +8,11 @@
 UBuffComponent::UBuffComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-
 }
 
 void UBuffComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void UBuffComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -22,7 +20,7 @@ void UBuffComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	HealRampUp(DeltaTime);
-	
+	ShieldRampUp(DeltaTime);
 }
 
 #pragma region Heal
@@ -49,6 +47,31 @@ void UBuffComponent::HealRampUp(float DeltaTime)
 	}
 }
 #pragma endregion Heal
+
+#pragma region Shield
+void UBuffComponent::ReplenishShield(float ShieldAmount, float ReplenishTime)
+{
+	bReplenishingShield = true;
+	ShieldReplenishRate = ShieldAmount / ReplenishTime;
+	AmountToShieldReplenish += ShieldAmount;
+}
+
+void UBuffComponent::ShieldRampUp(float DeltaTime)
+{
+	if (!bReplenishingShield || Character == nullptr || Character->IsElimmed()) return;
+
+	const float ReplenishThisFrame = ShieldReplenishRate * DeltaTime;
+	Character->SetShield(FMath::Clamp(Character->GetShield() + ReplenishThisFrame, 0.f, Character->GetMaxShield()));
+	Character->UpdateHUDShield();
+	AmountToShieldReplenish -= ReplenishThisFrame;
+
+	if (AmountToShieldReplenish <= 0.f || Character->GetShield() >= Character->GetMaxShield())
+	{
+		bReplenishingShield = false;
+		AmountToShieldReplenish = 0.f;
+	}
+}
+#pragma endregion Shield
 
 #pragma region Speed
 void UBuffComponent::SetInitialSpeeds(float BaseSpeed, float CrouchSpeed)
@@ -94,3 +117,44 @@ void UBuffComponent::Multicast_SpeedBuff_Implementation(float BaseSpeed, float C
 	}
 }
 #pragma endregion Speed
+
+#pragma region Jump
+void UBuffComponent::SetInitialJumpVelocity(float Velocity)
+{
+	InitialJumpVelocity = Velocity;
+}
+
+void UBuffComponent::BuffJump(float BuffJumpVelocity, float BuffTime)
+{
+	if (Character == nullptr) return;
+
+	Character->GetWorldTimerManager().SetTimer(
+		JumpBuffTimer,
+		this,
+		&UBuffComponent::ResetJump,
+		BuffTime);
+
+	if (Character->GetCharacterMovement()) //Bu buff compenentini, character pointerini post initilize components sirasinda aliyor, character movement da compenet ya hani, null olamaz bence
+	{
+		Character->GetCharacterMovement()->JumpZVelocity = BuffJumpVelocity;
+	}
+	Multicast_JumpBuff(BuffJumpVelocity);
+}
+
+void UBuffComponent::ResetJump()
+{
+	if (Character && Character->GetCharacterMovement()) //bak speed upu alirken de yaptik, multicastte refacto ettik kodu, gerek var mi acep bunlari cagirmaya, serverda da multicast calisiyor yani
+	{
+		Character->GetCharacterMovement()->JumpZVelocity = InitialJumpVelocity;
+	}
+	Multicast_JumpBuff(InitialJumpVelocity);
+}
+
+void UBuffComponent::Multicast_JumpBuff_Implementation(float JumpVelocity)
+{
+	if (Character && Character->GetCharacterMovement())
+	{
+		Character->GetCharacterMovement()->JumpZVelocity = JumpVelocity;
+	}
+}
+#pragma endregion Jump

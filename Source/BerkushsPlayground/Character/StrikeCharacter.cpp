@@ -82,6 +82,7 @@ void AStrikeCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	DOREPLIFETIME_CONDITION(AStrikeCharacter, OverlappingWeapon, COND_OwnerOnly);
 	//DOREPLIFETIME(AStrikeCharacter, OverlappingWeapon); //Boyle yapinca biri silah ustunde durunca herkeste gozukuyor
 	DOREPLIFETIME(AStrikeCharacter, Health);
+	DOREPLIFETIME(AStrikeCharacter, Shield);
 	//DOREPLIFETIME(AStrikeCharacter, bIsCurrentlyAlive); //bu da deneme
 	DOREPLIFETIME(AStrikeCharacter, bDisableGameplay);
 }
@@ -95,6 +96,7 @@ void AStrikeCharacter::PostInitializeComponents()
 	{
 		Buff->Character = this;
 		Buff->SetInitialSpeeds(GetCharacterMovement()->MaxWalkSpeed, GetCharacterMovement()->MaxWalkSpeedCrouched);
+		Buff->SetInitialJumpVelocity(GetCharacterMovement()->JumpZVelocity);
 	}
 }
 
@@ -103,6 +105,7 @@ void AStrikeCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	UpdateHUDHealth();
+	UpdateHUDShield();
 	if (StrikePlayerController)	StrikePlayerController->SetHUDKilledText(FString(""));
 	
 	if (HasAuthority())
@@ -306,6 +309,15 @@ void AStrikeCharacter::UpdateHUDHealth() //Bunu owner onlye alayim bi ara
 	}
 }
 
+void AStrikeCharacter::UpdateHUDShield()
+{
+	StrikePlayerController = StrikePlayerController == nullptr ? Cast<AStrikePlayerController>(GetController()) : StrikePlayerController;
+	if (StrikePlayerController)
+	{
+		StrikePlayerController->SetHUDShield(Shield, MaxShield);
+	}
+}
+
 void AStrikeCharacter::CalculateAO_Pitch()
 {
 	AO_Pitch = GetBaseAimRotation().Pitch; //Serverde rotasyon 0 360 arasinda gidiyor, Unrealin bok yemesi, //5 bayta dusuruyor
@@ -458,8 +470,26 @@ void AStrikeCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const U
 	class AController* InstigatorController, AActor* DamageCauser) /*Network event mi emin degilim*/
 {
 	if (bElimmed) return; //bElimmed diye varimiz varmis la malim ben
-	Health = FMath::Clamp(Health-Damage, 0.0f, MaxHealth);
+
+	float DamageToHealth = Damage;
+	if (Shield > 0.f)
+	{
+		if (Shield >= Damage)
+		{
+			Shield = FMath::Clamp(Shield - Damage, 0.0f, MaxShield);
+			DamageToHealth = 0.f;
+		}
+		else
+		{
+			DamageToHealth = FMath::Clamp(DamageToHealth - Shield, 0.f, Damage);
+			Shield = 0.f;
+		}
+	}
+	
+	Health = FMath::Clamp(Health - DamageToHealth, 0.0f, MaxHealth);
+	
 	UpdateHUDHealth(); //niye bunu ikisinde de cagiriyoruz, tamam repler serverde calismyor da owner degilse anlami ne
+	UpdateHUDShield();
 	PlayHitReactMontage();
 
 	if (Health == 0.f)
@@ -479,6 +509,15 @@ void AStrikeCharacter::OnRep_Health(float LastHealth)
 {
 	UpdateHUDHealth();
 	if (Health < LastHealth)
+	{
+		PlayHitReactMontage();
+	}
+}
+
+void AStrikeCharacter::OnRep_Shield(float LastShield)
+{
+	UpdateHUDShield();
+	if (Shield < LastShield)
 	{
 		PlayHitReactMontage();
 	}

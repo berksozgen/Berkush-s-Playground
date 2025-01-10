@@ -102,9 +102,29 @@ void AStrikePlayerController::SetHUDHealth(float Health, float MaxHealth)
 	}
 	else
 	{
-		bInitializeCharacterOverlay = true;
+		bInitializeKills = true;
 		HUDHealth = Health;
 		HUDMaxHealth = MaxHealth;
+	}
+}
+
+void AStrikePlayerController::SetHUDShield(float Shield, float MaxShield)
+{
+	StrikeHUD = StrikeHUD == nullptr ? Cast<AStrikeHUD>(GetHUD()) : StrikeHUD;
+
+	bool bHUDValid = StrikeHUD && StrikeHUD->CharacterOverlay && StrikeHUD->CharacterOverlay->ShieldBar && StrikeHUD->CharacterOverlay->ShieldText; //siralama onemli btw
+	if (bHUDValid)
+	{
+		const float ShieldPercent = Shield / MaxShield;
+		StrikeHUD->CharacterOverlay->ShieldBar->SetPercent(ShieldPercent);
+		FString ShieldText = FString::Printf(TEXT("%c%d"), '%', FMath::CeilToInt(100.f * ShieldPercent));
+		StrikeHUD->CharacterOverlay->ShieldText->SetText(FText::FromString(ShieldText));
+	}
+	else
+	{
+		bInitializeShield = true;
+		HUDShield = Shield;
+		HUDMaxShield = MaxShield;
 	}
 }
 
@@ -121,7 +141,7 @@ void AStrikePlayerController::SetHUDScore(float Score)
 	}
 	else
 	{
-		bInitializeCharacterOverlay = true;
+		bInitializeScore = true;
 		HUDScore = Score;
 	}
 }
@@ -139,7 +159,7 @@ void AStrikePlayerController::SetHUDKills(int32 Kills)
 	}
 	else
 	{
-		bInitializeCharacterOverlay = true;
+		bInitializeKills = true;
 		HUDKills = Kills;
 	}
 }
@@ -157,7 +177,7 @@ void AStrikePlayerController::SetHUDDeaths(int32 Deaths)
 	}
 	else
 	{
-		bInitializeCharacterOverlay = true;
+		bInitializeDeaths = true;
 		HUDDeaths = Deaths;
 	}
 }
@@ -310,13 +330,15 @@ void AStrikePlayerController::PollInit()
 			CharacterOverlay = StrikeHUD->CharacterOverlay;
 			if (CharacterOverlay)
 			{
-				SetHUDHealth(HUDHealth,HUDMaxHealth);
-				SetHUDScore(HUDScore);
-				SetHUDKills(HUDKills);
-				SetHUDDeaths(HUDDeaths);
+				if (bInitializeHealth) SetHUDHealth(HUDHealth,HUDMaxHealth);
+				if (bInitializeShield) SetHUDShield(HUDShield,HUDMaxShield);
+				
+				if (bInitializeScore) SetHUDScore(HUDScore);
+				if (bInitializeKills) SetHUDKills(HUDKills);
+				if (bInitializeDeaths) SetHUDDeaths(HUDDeaths);
 				
 				AStrikeCharacter* StrikeCharacter = Cast<AStrikeCharacter>(GetPawn());
-				if (StrikeCharacter && StrikeCharacter->GetCombat()) SetHUDGrenades(StrikeCharacter->GetCombat()->GetGrenadesCount());
+				if (bInitializeGrenades && StrikeCharacter && StrikeCharacter->GetCombat()) SetHUDGrenades(StrikeCharacter->GetCombat()->GetGrenadesCount());
 			}
 		}
 	}
