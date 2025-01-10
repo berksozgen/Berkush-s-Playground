@@ -18,6 +18,8 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	
 	void Heal(float HealAmount, float HealingTime);
+	void BuffSpeed(float BuffBaseSpeed, float BuffCrouchSpeed, float BuffTime);
+	void SetInitialSpeeds(float BaseSpeed, float CrouchSpeed);
 
 protected:
 	virtual void BeginPlay() override;
@@ -28,9 +30,18 @@ private:
 	UPROPERTY()
 	class AStrikeCharacter* Character;
 
+	//Heal
 	bool bHealing = false;
 	float HealingRate = 0.f;
 	float AmountToHeal = 0.f;
+
+	//Speed
+	FTimerHandle SpeedBuffTimer;
+	void ResetSpeeds();
+	float InitialBaseSpeed;
+	float InitialCrouchSpeed;
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_SpeedBuff(float BaseSpeed, float CrouchSpeed);
 
 public:	
 	

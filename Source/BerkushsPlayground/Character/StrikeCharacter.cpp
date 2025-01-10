@@ -91,7 +91,11 @@ void AStrikeCharacter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	if (Combat) Combat->Character = this;
-	if (Buff) Buff->Character = this;
+	if (Buff)
+	{
+		Buff->Character = this;
+		Buff->SetInitialSpeeds(GetCharacterMovement()->MaxWalkSpeed, GetCharacterMovement()->MaxWalkSpeedCrouched);
+	}
 }
 
 void AStrikeCharacter::BeginPlay()
