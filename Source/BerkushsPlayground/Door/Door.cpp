@@ -11,7 +11,7 @@ ADoor::ADoor()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
-	//SetReplicateMovement(true); //merge change
+	//SetReplicateMovement(true);
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
